@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="eu">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="Bi jokalarirentzako rosko estiloko hitz-joko instalagarria."
+    />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Hitzapasa" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <style>
+      body {
+        margin: 0;
+      }
+
+      .pantaila {
+        display: none;
+      }
+
+      .pantaila--aktibo {
+        display: grid;
+      }
+    </style>
+    <link rel="stylesheet" href="./styles.css" />
+    <title>Hitzapasa</title>
+  </head>
+  <body>
+    <noscript>
+      <div class="js-gabe">
+        Aplikazio honek JavaScript gaituta behar du behar bezala aritzeko.
+      </div>
+    </noscript>
+
+    <div class="hondo-argia hondo-argia--goia" aria-hidden="true"></div>
+    <div class="hondo-argia hondo-argia--behea" aria-hidden="true"></div>
+
+    <main class="aplikazioa">
+      <section id="hasieraPantaila" class="pantaila pantaila--aktibo">
+        <div class="panel hero-panela">
+          <p class="etiketa">Bi jokalarirentzako hitz-jokoa</p>
+          <h1>Hitzapasa</h1>
+          <p class="azalpena">
+            Roskoa osatu, denbora zaindu eta galdera beraiei erantzun lehia
+            garbian.
+          </p>
+        </div>
+
+        <form id="hasieraFormulario" class="panel hasiera-panela" novalidate>
+          <div class="eremu-taldea">
+            <label for="gaiaSelect">Aukeratu gaia</label>
+            <select id="gaiaSelect" name="gaia">
+              <option value="">Kargatzen...</option>
+            </select>
+          </div>
+
+          <div class="eremu-taldea">
+            <label for="jokalari1Izena">1. jokalaria</label>
+            <input
+              id="jokalari1Izena"
+              name="jokalari1Izena"
+              type="text"
+              maxlength="24"
+              autocomplete="nickname"
+              placeholder="1. jokalaria"
+            />
+          </div>
+
+          <div class="eremu-taldea">
+            <label for="jokalari2Izena">2. jokalaria</label>
+            <input
+              id="jokalari2Izena"
+              name="jokalari2Izena"
+              type="text"
+              maxlength="24"
+              autocomplete="nickname"
+              placeholder="2. jokalaria"
+            />
+          </div>
+
+          <p id="hasieraMezua" class="hasiera-mezua" aria-live="polite"></p>
+
+          <button id="hasiJokoaBotoia" class="botoia botoia--nagusia" type="submit">
+            Hasi jokoa
+          </button>
+        </form>
+      </section>
+
+      <section id="jokoPantaila" class="pantaila">
+        <div class="goiko-barra">
+          <div>
+            <p class="etiketa">Aplikazioa</p>
+            <h2 class="goiburua">Hitzapasa</h2>
+          </div>
+          <div
+            id="denboraErakusgailuaGoiburua"
+            class="denbora-erakusgailua denbora-erakusgailua--goiburua"
+          ></div>
+          <button id="berrabiaraziBotoia" class="botoia botoia--biguna" type="button">
+            Berriro
+          </button>
+        </div>
+
+        <div class="egoera-sarea">
+          <article id="jokalariTxartela0" class="panel jokalari-txartela"></article>
+
+          <article class="panel kronometro-panela">
+            <p class="etiketa">Txanda</p>
+            <h2 id="txandaAdierazlea" class="txanda-testua"></h2>
+            <div id="denboraErakusgailua" class="denbora-erakusgailua"></div>
+          </article>
+
+          <article id="jokalariTxartela1" class="panel jokalari-txartela"></article>
+        </div>
+
+        <div class="joko-edukia">
+          <section class="panel rosko-panela">
+            <div class="rosko-goiburua">
+              <p class="etiketa">Roskoa</p>
+              <h3 id="uneanJokalaria"></h3>
+            </div>
+            <div id="roskoa" class="roskoa" aria-label="Roskoa"></div>
+          </section>
+
+          <section class="panel galdera-panela">
+            <p class="etiketa">Uneko galdera</p>
+            <div id="galderaLetra" class="galdera-letra"></div>
+            <p id="galderaPista" class="galdera-pista"></p>
+
+            <form id="erantzunFormulario" class="erantzun-formularioa" novalidate>
+              <label class="irakurgailuarentzat-bakarrik" for="erantzunaInput">
+                Erantzuna
+              </label>
+              <input
+                id="erantzunaInput"
+                type="text"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+                placeholder="Idatzi erantzuna"
+              />
+
+              <div class="botoi-ilara">
+                <button class="botoia botoia--nagusia" type="submit">
+                  Erantzun
+                </button>
+                <button
+                  id="pasapalabraBotoia"
+                  class="botoia botoia--biguna"
+                  type="button"
+                >
+                  Hitzapasa
+                </button>
+              </div>
+            </form>
+
+            <p id="feedbackMezua" class="feedbacka" aria-live="polite"></p>
+          </section>
+        </div>
+      </section>
+
+      <section id="aldaketaPantaila" class="pantaila">
+        <div class="panel trantsizio-panela">
+          <p class="etiketa">Hurrengo jokalaria</p>
+          <h2 id="aldaketaIzenburua"></h2>
+          <p id="aldaketaAzalpena" class="azalpena"></p>
+          <div id="aldaketaLaburpena" class="laburpen-kutxa"></div>
+          <button
+            id="hurrengoTxandaBotoia"
+            class="botoia botoia--nagusia"
+            type="button"
+          >
+            Hasi hurrengo txanda
+          </button>
+          <button
+            id="aldaketaBerrabiaraziBotoia"
+            class="botoia botoia--biguna"
+            type="button"
+          >
+            Berrabiarazi jokoa
+          </button>
+        </div>
+      </section>
+
+      <section id="amaieraPantaila" class="pantaila">
+        <div class="panel amaiera-panela">
+          <p class="etiketa">Jokoa amaitu da</p>
+          <h2 id="irabazleaIzenburua"></h2>
+          <div id="azkenEmaitzak" class="azken-emaitzak"></div>
+          <button
+            id="amaieraBerrabiaraziBotoia"
+            class="botoia botoia--nagusia"
+            type="button"
+          >
+            Berrabiarazi jokoa
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
