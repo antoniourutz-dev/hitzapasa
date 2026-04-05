@@ -8,7 +8,7 @@
     />
     <meta
       name="description"
-      content="Bi jokalarirentzako rosko estiloko hitz-joko instalagarria."
+      content="Bakarka edo binaka jolasteko rosko estiloko hitz-joko instalagarria."
     />
     <meta name="theme-color" content="#0f172a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -46,7 +46,7 @@
     <main class="aplikazioa">
       <section id="hasieraPantaila" class="pantaila pantaila--aktibo">
         <div class="panel hero-panela">
-          <p class="etiketa">Bi jokalarirentzako hitz-jokoa</p>
+          <p class="etiketa">Bakarka edo binaka jolasteko hitz-jokoa</p>
           <h1>Hitzapasa</h1>
         </div>
 
@@ -72,10 +72,36 @@
 
         <form id="hasieraFormulario" class="panel hasiera-panela" novalidate>
           <p class="etiketa">Joko lokala</p>
-          <p class="azalpena">Bi jokalarien izenak idatzi eta gailu berean jokatu.</p>
+          <p id="jokoLokalaAzalpena" class="azalpena">
+            Bi jokalarien izenak idatzi eta gailu berean jokatu.
+          </p>
 
-          <div class="eremu-taldea">
-            <label for="jokalari1Izena">1. jokalaria</label>
+          <fieldset class="modu-hautagailua">
+            <legend>Joko modua</legend>
+            <div class="modu-hautagailu-aukera-zerrenda">
+              <label class="modu-hautagailu-aukera" for="jokoModuaBakarka">
+                <input
+                  id="jokoModuaBakarka"
+                  name="jokoModua"
+                  type="radio"
+                  value="bakarka"
+                />
+                <span>Bakarka</span>
+              </label>
+              <label class="modu-hautagailu-aukera" for="jokoModuaBinaka">
+                <input
+                  id="jokoModuaBinaka"
+                  name="jokoModua"
+                  type="radio"
+                  value="binaka"
+                />
+                <span>Binaka</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div id="jokalari1Eremua" class="eremu-taldea" hidden>
+            <label id="jokalari1Label" for="jokalari1Izena">1. jokalaria</label>
             <input
               id="jokalari1Izena"
               name="jokalari1Izena"
@@ -86,7 +112,7 @@
             />
           </div>
 
-          <div class="eremu-taldea">
+          <div id="jokalari2Eremua" class="eremu-taldea" hidden>
             <label for="jokalari2Izena">2. jokalaria</label>
             <input
               id="jokalari2Izena"

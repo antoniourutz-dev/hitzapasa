@@ -1,6 +1,6 @@
 import { corsHeaders } from 'jsr:@supabase/supabase-js/cors'
 
-const HASIERAKO_DENBORA_MS = 150000
+const HASIERAKO_DENBORA_MS = 300000
 
 export type MatchRow = {
   id: string

@@ -156,6 +156,68 @@ select {
   gap: 1rem;
 }
 
+.modu-hautagailua {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.modu-hautagailua legend {
+  padding: 0;
+  font-weight: 700;
+  color: var(--testu-biguna);
+}
+
+.modu-hautagailu-aukera-zerrenda {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.modu-hautagailu-aukera {
+  position: relative;
+  display: block;
+}
+
+.modu-hautagailu-aukera input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modu-hautagailu-aukera span {
+  display: grid;
+  place-items: center;
+  min-height: 3.4rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(8, 17, 34, 0.56);
+  color: var(--testu-biguna);
+  font-weight: 800;
+  transition:
+    border-color var(--trantsizioa),
+    background-color var(--trantsizioa),
+    color var(--trantsizioa),
+    box-shadow var(--trantsizioa);
+  cursor: pointer;
+}
+
+.modu-hautagailu-aukera input:checked + span {
+  color: var(--testu-nagusia);
+  border-color: rgba(56, 189, 248, 0.42);
+  background: rgba(56, 189, 248, 0.16);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
+}
+
+.modu-hautagailu-aukera input:focus-visible + span {
+  border-color: var(--urdin-distira);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.14);
+}
+
 .konfigurazio-panela,
 .online-sartu-panela {
   padding: 1rem;
@@ -406,6 +468,10 @@ select {
   display: grid;
   grid-template-columns: 1fr minmax(220px, 260px) 1fr;
   gap: 1rem;
+}
+
+.egoera-sarea--bakarka {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
 }
 
 .jokalari-txartela,
@@ -1052,6 +1118,7 @@ select {
 
   .jokalari-estatistikak,
   .botoi-ilara,
+  .modu-hautagailu-aukera-zerrenda,
   .hasiera-ekintzak,
   .online-lobby-ekintzak,
   .online-saio-ekintzak {

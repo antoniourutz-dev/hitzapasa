@@ -5,14 +5,18 @@ import {
   supabaseKonfiguratutaDago,
 } from "./supabaseClient.js";
 
-const HASIERAKO_DENBORA = 150;
+const HASIERAKO_DENBORA = 300;
 const GORDE_GAKOA = "hitzapasa-egoera-v10";
 const SUPABASE_HEADERS = lortuSupabaseHeaders();
+const JOKO_MODUA_GABE = "";
+const JOKO_MODUA_BAKARKA = "bakarka";
+const JOKO_MODUA_BINAKA = "binaka";
 
 const dom = {
   aplikazioa: document.querySelector(".aplikazioa"),
   hasieraPantaila: document.getElementById("hasieraPantaila"),
   jokoPantaila: document.getElementById("jokoPantaila"),
+  egoeraSarea: document.querySelector("#jokoPantaila .egoera-sarea"),
   aldaketaPantaila: document.getElementById("aldaketaPantaila"),
   amaieraPantaila: document.getElementById("amaieraPantaila"),
   onlineLobbyPantaila: document.getElementById("onlineLobbyPantaila"),
@@ -28,6 +32,12 @@ const dom = {
   mailaSelect: document.getElementById("mailaSelect"),
   hasieraMezua: document.getElementById("hasieraMezua"),
   onlineJoinMezua: document.getElementById("onlineJoinMezua"),
+  jokoLokalaAzalpena: document.getElementById("jokoLokalaAzalpena"),
+  jokoModuaBakarka: document.getElementById("jokoModuaBakarka"),
+  jokoModuaBinaka: document.getElementById("jokoModuaBinaka"),
+  jokalari1Eremua: document.getElementById("jokalari1Eremua"),
+  jokalari1Label: document.getElementById("jokalari1Label"),
+  jokalari2Eremua: document.getElementById("jokalari2Eremua"),
   jokalari1Izena: document.getElementById("jokalari1Izena"),
   jokalari2Izena: document.getElementById("jokalari2Izena"),
   jokalariTxartela0: document.getElementById("jokalariTxartela0"),
@@ -207,6 +217,7 @@ function sortuOnlineEgoera() {
 
 const egoera = {
   pantaila: "hasiera",
+  jokoModua: JOKO_MODUA_GABE,
   konfigurazioa: {
     topic: "",
     level: "",
@@ -256,6 +267,87 @@ function lortuEgoerarenBiltegia() {
   } catch (_errorea) {
     return window.localStorage;
   }
+}
+
+function bakarkakoJokoaDa(jokoModua = egoera.jokoModua) {
+  return jokoModua === JOKO_MODUA_BAKARKA;
+}
+
+function binakakoJokoaDa(jokoModua = egoera.jokoModua) {
+  return jokoModua === JOKO_MODUA_BINAKA;
+}
+
+function jokoModuaAukeratutaDago(jokoModua = egoera.jokoModua) {
+  return bakarkakoJokoaDa(jokoModua) || binakakoJokoaDa(jokoModua);
+}
+
+function beharrezkoRoskoKopurua(jokoModua = egoera.jokoModua) {
+  return bakarkakoJokoaDa(jokoModua) ? 1 : 2;
+}
+
+function itzuliRoskoEskakizunMezua(jokoModua = egoera.jokoModua) {
+  if (!jokoModuaAukeratutaDago(jokoModua)) {
+    return "Ez dago rosko erabilgarririk";
+  }
+
+  return bakarkakoJokoaDa(jokoModua)
+    ? "Ez dago rosko erabilgarririk"
+    : "Ez dago nahikoa roskorik";
+}
+
+function jokoModuaJokalariKopurutik(jokalariKopurua) {
+  if (jokalariKopurua === 1) {
+    return JOKO_MODUA_BAKARKA;
+  }
+
+  if (jokalariKopurua === 2) {
+    return JOKO_MODUA_BINAKA;
+  }
+
+  return JOKO_MODUA_GABE;
+}
+
+function eguneratuRoskoEskuragarritasunMezua() {
+  const mezuAldagarriak = new Set([
+    "",
+    "Ez dago rosko erabilgarririk",
+    "Ez dago nahikoa roskorik",
+  ]);
+
+  if (
+    !mezuAldagarriak.has(egoera.hasieraMezua) ||
+    hautapenakKargatzenDira() ||
+    !egoera.konfigurazioa.topic ||
+    !egoera.konfigurazioa.level
+  ) {
+    return;
+  }
+
+  if (!jokoModuaAukeratutaDago()) {
+    if (egoera.aukerak.roscos.length === 0) {
+      ezarriHasieraMezua("Ez dago rosko erabilgarririk", "okerra");
+    } else {
+      ezarriHasieraMezua("", "oharra");
+    }
+    return;
+  }
+
+  if (egoera.aukerak.roscos.length < beharrezkoRoskoKopurua()) {
+    ezarriHasieraMezua(itzuliRoskoEskakizunMezua(), "okerra");
+    return;
+  }
+
+  ezarriHasieraMezua("", "oharra");
+}
+
+function ezarriJokoModua(jokoModua) {
+  egoera.jokoModua =
+    jokoModua === JOKO_MODUA_BAKARKA
+      ? JOKO_MODUA_BAKARKA
+      : jokoModua === JOKO_MODUA_BINAKA
+        ? JOKO_MODUA_BINAKA
+        : JOKO_MODUA_GABE;
+  eguneratuRoskoEskuragarritasunMezua();
 }
 
 function gordeBiltegian(gakoa, balioa) {
@@ -383,14 +475,27 @@ function egiaztatuGalderak(galderak) {
 }
 
 function egiaztatuJokalarienRoskak(jokalariak, konfigurazioa) {
-  if (!Array.isArray(jokalariak) || jokalariak.length !== 2) {
-    throw new Error("Bi jokalari behar dira.");
+  const jokoModua = jokoModuaJokalariKopurutik(jokalariak?.length ?? 0);
+  const jokalariKopurua = beharrezkoRoskoKopurua(jokoModua);
+
+  if (!Array.isArray(jokalariak) || jokalariak.length !== jokalariKopurua) {
+    throw new Error(
+      bakarkakoJokoaDa(jokoModua)
+        ? "Jokalari bakarra behar da."
+        : "Bi jokalari behar dira.",
+    );
   }
 
-  const [bat, bi] = jokalariak;
+  if (bakarkakoJokoaDa(jokoModua)) {
+    if (!jokalariak[0]?.rosco) {
+      throw new Error("Jokalariak rosko bat behar du.");
+    }
+  } else {
+    const [bat, bi] = jokalariak;
 
-  if (!bat.rosco || !bi.rosco || bat.rosco === bi.rosco) {
-    throw new Error("Jokalariek rosko bana eta desberdina behar dute.");
+    if (!bat.rosco || !bi.rosco || bat.rosco === bi.rosco) {
+      throw new Error("Jokalariek rosko bana eta desberdina behar dute.");
+    }
   }
 
   jokalariak.forEach((jokalaria) => {
@@ -1933,10 +2038,14 @@ function kalkulatuPendienteak(jokalaria) {
 }
 
 function lortuBesteJokalaria(indizea) {
-  return indizea === 0 ? 1 : 0;
+  return egoera.jokalariak.findIndex((_jokalaria, unekoIndizea) => unekoIndizea !== indizea);
 }
 
 function jokalariaPrestDago(indizea) {
+  if (typeof indizea !== "number" || indizea < 0) {
+    return false;
+  }
+
   const jokalaria = egoera.jokalariak[indizea];
 
   return Boolean(
@@ -2072,6 +2181,20 @@ function renderStartScreen() {
   dom.mailaSelect.value = egoera.konfigurazioa.level;
   dom.mailaSelect.disabled = true;
   dom.mailaEremua.hidden = true;
+  const moduaAukeratuta = jokoModuaAukeratutaDago();
+  dom.jokoModuaBakarka.checked = egoera.jokoModua === JOKO_MODUA_BAKARKA;
+  dom.jokoModuaBinaka.checked = egoera.jokoModua === JOKO_MODUA_BINAKA;
+  dom.jokoLokalaAzalpena.textContent = !moduaAukeratuta
+    ? "Aukeratu bakarka ala binaka jolastu nahi duzun."
+    : bakarkakoJokoaDa()
+      ? "Zure izena idatzi eta bakarrik jokatu."
+      : "Bi jokalarien izenak idatzi eta gailu berean jokatu.";
+  dom.jokalari1Label.textContent = bakarkakoJokoaDa() ? "Jokalaria" : "1. jokalaria";
+  dom.jokalari1Izena.placeholder = bakarkakoJokoaDa() ? "Jokalaria" : "1. jokalaria";
+  dom.jokalari1Eremua.hidden = !moduaAukeratuta;
+  dom.jokalari2Eremua.hidden = !moduaAukeratuta || bakarkakoJokoaDa();
+  dom.jokalari1Izena.disabled = !moduaAukeratuta;
+  dom.jokalari2Izena.disabled = !moduaAukeratuta || bakarkakoJokoaDa();
   dom.onlineJoinEdukia.hidden = !egoera.online.onlinePanelExpanded;
   dom.onlineJoinFormulario.classList.toggle(
     "online-sartu-panela--zabalik",
@@ -2113,10 +2236,11 @@ function renderStartScreen() {
   dom.onlineRoomCodeInput.value = egoera.online.enteredRoomCode;
   dom.onlineRoomCodeInput.disabled = onlineKargatzenDa() || !supabaseKonfiguratutaDago();
   dom.hasiJokoaBotoia.disabled =
+    !jokoModuaAukeratutaDago() ||
     !konfigurazioaOsatuta() ||
     hautapenakKargatzenDira() ||
     onlineKargatzenDa() ||
-    egoera.aukerak.roscos.length < 2;
+    egoera.aukerak.roscos.length < beharrezkoRoskoKopurua();
   dom.hasiJokoaBotoia.textContent = egoera.kargatzen.questions ? "Kargatzen..." : "Hasi jokoa";
   dom.onlineSortuBotoia.disabled =
     !konfigurazioaOsatuta() ||
@@ -2223,8 +2347,13 @@ async function kargatuRoskak(topic, level) {
 
     egoera.aukerak.roscos = aukerakBakarrik(datuak, "rosco");
 
-    if (egoera.aukerak.roscos.length < 2) {
-      ezarriHasieraMezua("Ez dago nahikoa roskorik", "okerra");
+    if (!jokoModuaAukeratutaDago()) {
+      ezarriHasieraMezua(
+        egoera.aukerak.roscos.length === 0 ? "Ez dago rosko erabilgarririk" : "",
+        egoera.aukerak.roscos.length === 0 ? "okerra" : "oharra",
+      );
+    } else if (egoera.aukerak.roscos.length < beharrezkoRoskoKopurua()) {
+      ezarriHasieraMezua(itzuliRoskoEskakizunMezua(), "okerra");
     } else {
       ezarriHasieraMezua("", "oharra");
     }
@@ -2245,6 +2374,17 @@ function esleituJokalarienRoskak(roskoak) {
   }
 
   return [bakarrak[0], bakarrak[1]];
+}
+
+function esleituBakarkakoRoskoa(roskoak) {
+  const bakarrak = [...new Set(roskoak)];
+
+  if (bakarrak.length < 1) {
+    throw new Error("rosko-gutxiegi");
+  }
+
+  const ausazkoIndizea = Math.floor(Math.random() * bakarrak.length);
+  return bakarrak[ausazkoIndizea] ?? bakarrak[0];
 }
 
 async function kargatuRoskoarenGalderak(topic, level, rosco) {
@@ -2293,6 +2433,17 @@ async function kargatuBiJokalarienGalderak() {
     rosco2,
     galderak1,
     galderak2,
+  };
+}
+
+async function kargatuBakarkakoGalderak() {
+  const { topic, level } = egoera.konfigurazioa;
+  const rosco = esleituBakarkakoRoskoa(egoera.aukerak.roscos);
+  const galderak = await kargatuRoskoarenGalderak(topic, level, rosco);
+
+  return {
+    rosco,
+    galderak,
   };
 }
 
@@ -3698,6 +3849,11 @@ async function handleSetReady() {
 function renderJokalariTxartela(indizea) {
   const txartela = indizea === 0 ? dom.jokalariTxartela0 : dom.jokalariTxartela1;
   const jokalaria = egoera.jokalariak[indizea];
+
+  if (!txartela || !jokalaria) {
+    return;
+  }
+
   const aktiboa = egoera.pantaila === "jokoa" && indizea === egoera.unekoJokalaria;
   const pendienteak = kalkulatuPendienteak(jokalaria);
 
@@ -3730,12 +3886,20 @@ function renderJokalariTxartela(indizea) {
 }
 
 function renderEgoeraTaula() {
-  if (egoera.jokalariak.length !== 2) {
+  if (egoera.jokalariak.length === 0) {
     return;
   }
 
+  dom.egoeraSarea?.classList.toggle("egoera-sarea--bakarka", egoera.jokalariak.length === 1);
+  dom.jokalariTxartela0.hidden = false;
   renderJokalariTxartela(0);
-  renderJokalariTxartela(1);
+  if (egoera.jokalariak.length > 1) {
+    dom.jokalariTxartela1.hidden = false;
+    renderJokalariTxartela(1);
+  } else {
+    dom.jokalariTxartela1.hidden = true;
+    dom.jokalariTxartela1.innerHTML = "";
+  }
 
   const jokalaria = lortuUnekoJokalaria();
   const txandaTestua = `${jokalaria.izena}(r)en txanda`;
@@ -3886,6 +4050,10 @@ function renderGameScreen() {
 }
 
 function kalkulatuIrabazlea() {
+  if (egoera.jokalariak.length === 1) {
+    return egoera.jokalariak[0].izena;
+  }
+
   const [bat, bi] = egoera.jokalariak;
 
   if (bat.asmatuak > bi.asmatuak) {
@@ -3908,9 +4076,13 @@ function kalkulatuIrabazlea() {
 }
 
 function renderResultsScreen() {
-  const irabazlea = kalkulatuIrabazlea();
-  dom.irabazleaIzenburua.textContent =
-    irabazlea === "Berdinketa" ? "Berdinketa" : `Irabazlea: ${irabazlea}`;
+  if (egoera.jokalariak.length === 1) {
+    dom.irabazleaIzenburua.textContent = `${egoera.jokalariak[0].izena}(r)en emaitza`;
+  } else {
+    const irabazlea = kalkulatuIrabazlea();
+    dom.irabazleaIzenburua.textContent =
+      irabazlea === "Berdinketa" ? "Berdinketa" : `Irabazlea: ${irabazlea}`;
+  }
 
   dom.azkenEmaitzak.innerHTML = egoera.jokalariak
     .map((jokalaria) => {
@@ -3945,6 +4117,7 @@ function gordeEgoera() {
     GORDE_GAKOA,
     JSON.stringify({
       pantaila: egoera.pantaila,
+      jokoModua: egoera.jokoModua,
       konfigurazioa: egoera.konfigurazioa,
       jokalariak: egoera.jokalariak,
       unekoJokalaria: egoera.unekoJokalaria,
@@ -3969,6 +4142,9 @@ function kargatuEgoera() {
 
   try {
     const datuak = JSON.parse(gordea);
+    const jokoModua = jokoModuaAukeratutaDago(datuak.jokoModua)
+      ? datuak.jokoModua
+      : jokoModuaJokalariKopurutik(datuak.jokalariak?.length ?? 0);
     const onlineGordea = datuak.online ?? {};
     const onlineBerreskuratua = {
       ...sortuOnlineEgoera(),
@@ -4009,6 +4185,7 @@ function kargatuEgoera() {
         topic: datuak.konfigurazioa?.topic ?? "",
         level: datuak.konfigurazioa?.level ?? "",
       };
+      egoera.jokoModua = jokoModua;
       egoera.online = onlineBerreskuratua;
       onlineStartEskatutakoMatchId = `${egoera.online.onlineMatch?.id ?? ""}`.trim();
       onlineGameKargatutakoMatchId =
@@ -4034,7 +4211,7 @@ function kargatuEgoera() {
 
     if (
       !Array.isArray(datuak.jokalariak) ||
-      datuak.jokalariak.length !== 2 ||
+      ![1, 2].includes(datuak.jokalariak.length) ||
       !datuak.konfigurazioa?.topic ||
       !datuak.konfigurazioa?.level
     ) {
@@ -4059,6 +4236,7 @@ function kargatuEgoera() {
       topic: datuak.konfigurazioa.topic,
       level: datuak.konfigurazioa.level,
     };
+    egoera.jokoModua = jokoModua;
     egoera.jokalariak = datuak.jokalariak;
     egoera.unekoJokalaria = datuak.unekoJokalaria ?? 0;
     egoera.hurrengoJokalaria = datuak.hurrengoJokalaria ?? null;
@@ -4091,21 +4269,28 @@ function kargatuEgoera() {
 }
 
 async function initGame() {
+  if (!jokoModuaAukeratutaDago()) {
+    ezarriHasieraMezua("Aukeratu joko modua", "okerra");
+    renderStartScreen();
+    return;
+  }
+
   if (!konfigurazioaOsatuta() || hautapenakKargatzenDira()) {
     ezarriHasieraMezua("Aukeraketa osatu behar duzu", "okerra");
     renderStartScreen();
     return;
   }
 
-  if (egoera.aukerak.roscos.length < 2) {
-    ezarriHasieraMezua("Ez dago nahikoa roskorik", "okerra");
+  if (egoera.aukerak.roscos.length < beharrezkoRoskoKopurua()) {
+    ezarriHasieraMezua(itzuliRoskoEskakizunMezua(), "okerra");
     renderStartScreen();
     return;
   }
 
   garbituErlojua();
 
-  const izena1 = dom.jokalari1Izena.value.trim() || "1. jokalaria";
+  const izena1 = dom.jokalari1Izena.value.trim()
+    || (bakarkakoJokoaDa() ? "Jokalaria" : "1. jokalaria");
   const izena2 = dom.jokalari2Izena.value.trim() || "2. jokalaria";
 
   egoera.kargatzen.questions = true;
@@ -4113,17 +4298,22 @@ async function initGame() {
   renderStartScreen();
 
   try {
-    const { rosco1, rosco2, galderak1, galderak2 } = await kargatuBiJokalarienGalderak();
-    egoera.jokalariak = [
-      sortuJokalaria(izena1, rosco1, galderak1),
-      sortuJokalaria(izena2, rosco2, galderak2),
-    ];
+    if (bakarkakoJokoaDa()) {
+      const { rosco, galderak } = await kargatuBakarkakoGalderak();
+      egoera.jokalariak = [sortuJokalaria(izena1, rosco, galderak)];
+    } else {
+      const { rosco1, rosco2, galderak1, galderak2 } = await kargatuBiJokalarienGalderak();
+      egoera.jokalariak = [
+        sortuJokalaria(izena1, rosco1, galderak1),
+        sortuJokalaria(izena2, rosco2, galderak2),
+      ];
+    }
     egiaztatuJokalarienRoskak(egoera.jokalariak, egoera.konfigurazioa);
   } catch (errorea) {
     egoera.jokalariak = [];
     ezarriHasieraMezua(
       errorea instanceof Error && errorea.message === "rosko-gutxiegi"
-        ? "Ez dago nahikoa roskorik"
+        ? itzuliRoskoEskakizunMezua()
         : "Ezin izan dira galderak kargatu",
       "okerra",
     );
@@ -4379,6 +4569,7 @@ function restartGame() {
   onlineGameKargatutakoMatchId = "";
   onlineTimeoutEskatutakoGakoa = "";
   egoera.pantaila = "hasiera";
+  egoera.jokoModua = JOKO_MODUA_GABE;
   egoera.konfigurazioa = {
     topic: "",
     level: "",
@@ -4518,6 +4709,18 @@ function lotuGertaerak() {
     }
 
     void kargatuRoskak(egoera.konfigurazioa.topic, egoera.konfigurazioa.level);
+  });
+  dom.jokoModuaBakarka.addEventListener("change", () => {
+    if (dom.jokoModuaBakarka.checked) {
+      ezarriJokoModua(JOKO_MODUA_BAKARKA);
+      renderStartScreen();
+    }
+  });
+  dom.jokoModuaBinaka.addEventListener("change", () => {
+    if (dom.jokoModuaBinaka.checked) {
+      ezarriJokoModua(JOKO_MODUA_BINAKA);
+      renderStartScreen();
+    }
   });
 
   dom.onlineRoomCodeInput.addEventListener("input", () => {

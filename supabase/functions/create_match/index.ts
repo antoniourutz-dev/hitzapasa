@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
         topic,
         level,
         rosco: null,
-        time_remaining_ms: 150000,
+        time_remaining_ms: 300000,
         hits: 0,
         errors: 0,
         unanswered: 25,

@@ -530,7 +530,7 @@ function buildPlayerState(
     hits: 0,
     errors: 0,
     unanswered: 25,
-    timeRemainingMs: 150000,
+    timeRemainingMs: 300000,
     letters: questions.map((question) => ({
       slotOrder: Number(question.slot_order),
       letter: question.letter.trim().toUpperCase(),
@@ -643,7 +643,7 @@ async function updateMatchPlayers(
       .from('match_players')
       .update({
         rosco: update.rosco,
-        time_remaining_ms: 150000,
+        time_remaining_ms: 300000,
         hits: 0,
         errors: 0,
         unanswered: 25,

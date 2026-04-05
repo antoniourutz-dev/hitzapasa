@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
         is_ready: item.is_ready,
         is_connected: Boolean(item.is_connected),
         rosco: item.rosco ?? null,
-        time_remaining_ms: Number(item.time_remaining_ms ?? 150000),
+        time_remaining_ms: Number(item.time_remaining_ms ?? 300000),
         hits: Number(item.hits ?? 0),
         errors: Number(item.errors ?? 0),
         unanswered: Number(item.unanswered ?? 25),
