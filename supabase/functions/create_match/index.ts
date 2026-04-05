@@ -3,7 +3,7 @@ import { corsHeaders } from 'jsr:@supabase/supabase-js/cors'
 
 type CreateMatchBody = {
   topic?: string
-  level?: 'erraza' | 'ertaina' | 'zaila'
+  level?: string
 }
 
 Deno.serve(async (req) => {
@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
     const body = (await req.json()) as CreateMatchBody
     const topic = (body.topic ?? '').trim()
-    const level = body.level
+    const level = `${body.level ?? ''}`.trim()
 
     if (!topic) {
       return jsonResponse(
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (!level || !['erraza', 'ertaina', 'zaila'].includes(level)) {
+    if (!level) {
       return jsonResponse(
         { error: 'Maila ez da baliozkoa' },
         400
