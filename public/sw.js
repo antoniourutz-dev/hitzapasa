@@ -1,11 +1,12 @@
-const CACHE_IZENA = "rosko-bikoa-cache-v1";
+const CACHE_IZENA = "hitzapasa-cache-v19";
 const OINARRIZKO_ARTXIBOAK = [
-  "./",
-  "./index.html",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/icon-192.svg",
-  "./icons/icon-512.svg",
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/icon-192.svg",
+  "/icons/icon-512.svg",
 ];
 
 self.addEventListener("install", (gertaera) => {
@@ -37,26 +38,39 @@ self.addEventListener("fetch", (gertaera) => {
     return;
   }
 
+  if (gertaera.request.mode === "navigate") {
+    gertaera.respondWith(
+      fetch(gertaera.request)
+        .then((sarekoErantzuna) => {
+          const kopia = sarekoErantzuna.clone();
+          caches.open(CACHE_IZENA).then((cachea) => cachea.put(gertaera.request, kopia));
+          return sarekoErantzuna;
+        })
+        .catch(async () => {
+          const cachekoOrriBera = await caches.match(gertaera.request);
+          return cachekoOrriBera || caches.match("/index.html");
+        }),
+    );
+    return;
+  }
+
   gertaera.respondWith(
-    caches.match(gertaera.request).then((cachekoErantzuna) => {
+    caches.match(gertaera.request).then(async (cachekoErantzuna) => {
       if (cachekoErantzuna) {
         return cachekoErantzuna;
       }
 
-      return fetch(gertaera.request)
-        .then((sarekoErantzuna) => {
-          const kopia = sarekoErantzuna.clone();
+      const sarekoErantzuna = await fetch(gertaera.request);
 
-          if (
-            sarekoErantzuna.ok &&
-            new URL(gertaera.request.url).origin === self.location.origin
-          ) {
-            caches.open(CACHE_IZENA).then((cachea) => cachea.put(gertaera.request, kopia));
-          }
+      if (
+        sarekoErantzuna.ok &&
+        new URL(gertaera.request.url).origin === self.location.origin
+      ) {
+        const kopia = sarekoErantzuna.clone();
+        caches.open(CACHE_IZENA).then((cachea) => cachea.put(gertaera.request, kopia));
+      }
 
-          return sarekoErantzuna;
-        })
-        .catch(() => caches.match("./index.html"));
+      return sarekoErantzuna;
     }),
   );
 });

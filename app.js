@@ -1,7 +1,7 @@
 const HASIERAKO_DENBORA = 150;
 const GORDE_GAKOA = "hitzapasa-egoera-v5";
-const SUPABASE_URL = "https://awdajwrzxceqazmaorxc.supabase.co";
-const SUPABASE_KEY = "sb_publishable_USopGmel8SEMUckG1DoXTA_2-O0fQQk";
+const SUPABASE_URL = `${import.meta.env.VITE_SUPABASE_URL ?? ""}`.trim();
+const SUPABASE_KEY = `${import.meta.env.VITE_SUPABASE_ANON_KEY ?? ""}`.trim();
 const SUPABASE_HEADERS = {
   apikey: SUPABASE_KEY,
   Authorization: `Bearer ${SUPABASE_KEY}`,
@@ -178,6 +178,10 @@ function eraikiSupabaseParametroak(select, filtroak = {}, orderBy) {
 }
 
 async function eginSupabaseEskaera(select, filtroak = {}, orderBy) {
+  if (!supabaseKonfiguratutaDago()) {
+    throw new Error("supabase-konfiguratu-gabe");
+  }
+
   const parametroak = eraikiSupabaseParametroak(select, filtroak, orderBy);
   const erantzuna = await fetch(`${SUPABASE_URL}/rest/v1/hitzapasa?${parametroak}`, {
     headers: SUPABASE_HEADERS,
@@ -220,6 +224,10 @@ function hautapenakKargatzenDira() {
 function ezarriHasieraMezua(mezua, mota = "oharra") {
   egoera.hasieraMezua = mezua;
   egoera.hasieraMezuMota = mota;
+}
+
+function supabaseKonfiguratutaDago() {
+  return Boolean(SUPABASE_URL && SUPABASE_KEY);
 }
 
 function normalizatuErantzuna(testua) {
@@ -358,6 +366,13 @@ function renderStartScreen() {
 }
 
 async function kargatuGaiak() {
+  if (!supabaseKonfiguratutaDago()) {
+    egoera.aukerak.topics = [];
+    ezarriHasieraMezua("Supabase konfiguratu gabe dago", "okerra");
+    renderStartScreen();
+    return;
+  }
+
   egoera.kargatzen.topics = true;
   egoera.aukerak.topics = [];
   egoera.konfigurazioa.topic = "";
