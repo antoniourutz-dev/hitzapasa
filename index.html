@@ -48,19 +48,31 @@
         <div class="panel hero-panela">
           <p class="etiketa">Bi jokalarirentzako hitz-jokoa</p>
           <h1>Hitzapasa</h1>
-          <p class="azalpena">
-            Roskoa osatu, denbora zaindu eta galdera beraiei erantzun lehia
-            garbian.
-          </p>
         </div>
 
-        <form id="hasieraFormulario" class="panel hasiera-panela" novalidate>
+        <section class="panel konfigurazio-panela">
+          <p class="etiketa">Partidaren konfigurazioa</p>
+
           <div class="eremu-taldea">
             <label for="gaiaSelect">Aukeratu gaia</label>
             <select id="gaiaSelect" name="gaia">
               <option value="">Kargatzen...</option>
             </select>
           </div>
+
+          <div id="mailaEremua" class="eremu-taldea" hidden>
+            <label for="mailaSelect">Aukeratu maila</label>
+            <select id="mailaSelect" name="maila" disabled>
+              <option value="">Aukeratu gaia</option>
+            </select>
+          </div>
+
+          <p id="hasieraMezua" class="hasiera-mezua" aria-live="polite"></p>
+        </section>
+
+        <form id="hasieraFormulario" class="panel hasiera-panela" novalidate>
+          <p class="etiketa">Joko lokala</p>
+          <p class="azalpena">Bi jokalarien izenak idatzi eta gailu berean jokatu.</p>
 
           <div class="eremu-taldea">
             <label for="jokalari1Izena">1. jokalaria</label>
@@ -86,11 +98,87 @@
             />
           </div>
 
-          <p id="hasieraMezua" class="hasiera-mezua" aria-live="polite"></p>
-
           <button id="hasiJokoaBotoia" class="botoia botoia--nagusia" type="submit">
             Hasi jokoa
           </button>
+        </form>
+
+        <form id="onlineJoinFormulario" class="panel online-sartu-panela" novalidate>
+          <button
+            id="onlineTolesBotoia"
+            class="online-toles-botoia"
+            type="button"
+            aria-expanded="false"
+            aria-controls="onlineJoinEdukia"
+          >
+            <span class="online-toles-testuak">
+              <span class="etiketa">Online modua</span>
+              <strong>Online partida</strong>
+              <span id="onlineTolesAzalpena" class="online-toles-azalpena">
+                Zabaldu online jolasteko aukerak
+              </span>
+            </span>
+            <span class="online-toles-ikonoa" aria-hidden="true"></span>
+          </button>
+
+          <div id="onlineJoinEdukia" class="online-sartu-edukia" hidden>
+            <div class="online-saio-blokea">
+              <p class="etiketa">Online saioa</p>
+              <p id="onlineSaioEgoera" class="hasiera-mezua hasiera-mezua--oharra">
+                Online saioa behar da
+              </p>
+              <div class="online-saio-ekintzak">
+                <button
+                  id="onlineSaioBotoia"
+                  class="botoia botoia--nagusia"
+                  type="button"
+                >
+                  Online saioa hasi
+                </button>
+                <button
+                  id="onlineSaioaItxiBotoia"
+                  class="botoia botoia--biguna"
+                  type="button"
+                >
+                  Saioa itxi
+                </button>
+              </div>
+            </div>
+
+            <button
+              id="onlineSortuBotoia"
+              class="botoia botoia--biguna"
+              type="button"
+            >
+              Online partida sortu
+            </button>
+
+            <div class="online-banatzailea" aria-hidden="true"></div>
+
+            <div class="eremu-taldea">
+              <label for="onlineRoomCodeInput">Sartu gelaren kodea</label>
+              <input
+                id="onlineRoomCodeInput"
+                name="onlineRoomCode"
+                type="text"
+                maxlength="12"
+                autocomplete="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                placeholder="ABCD23"
+              />
+            </div>
+
+            <p id="onlineJoinMezua" class="hasiera-mezua" aria-live="polite"></p>
+
+            <button
+              id="onlineSartuBotoia"
+              class="botoia botoia--biguna"
+              type="submit"
+            >
+              Partidan sartu
+            </button>
+          </div>
         </form>
       </section>
 
@@ -201,6 +289,273 @@
             type="button"
           >
             Berrabiarazi jokoa
+          </button>
+        </div>
+      </section>
+
+      <section id="onlineLobbyPantaila" class="pantaila">
+        <div class="panel amaiera-panela lobby-panela">
+          <p class="etiketa">Lobbya</p>
+          <h2 id="onlineLobbyIzenburua">Online gela</h2>
+          <p id="onlineLobbyAzalpena" class="azalpena">
+            Partekatu kode hau edo itxaron beste jokalariari.
+          </p>
+          <div class="online-lobby-grid">
+            <article>
+              <span>Gelaren kodea</span>
+              <strong id="onlineRoomCode"></strong>
+            </article>
+            <article>
+              <span>Gaia</span>
+              <strong id="onlineTopic"></strong>
+            </article>
+            <article>
+              <span>Maila</span>
+              <strong id="onlineLevel"></strong>
+            </article>
+            <article>
+              <span>Egoera</span>
+              <strong id="onlineStatus"></strong>
+            </article>
+            <article>
+              <span>Zure lekua</span>
+              <strong id="onlineSeat"></strong>
+            </article>
+            <article>
+              <span>Oharra</span>
+              <strong id="onlineLobbyMessage">Bigarren jokalariaren zain</strong>
+            </article>
+          </div>
+
+          <div class="online-jokalariak-blokea">
+            <p class="etiketa">Jokalarien egoerak</p>
+            <div class="online-jokalariak-grid">
+              <article id="onlineJokalariTxartela1" class="online-jokalari-txartela">
+                <span>1. jokalaria</span>
+                <strong id="onlineJokalariEgoera1">Jokalariaren zain</strong>
+              </article>
+              <article id="onlineJokalariTxartela2" class="online-jokalari-txartela">
+                <span>2. jokalaria</span>
+                <strong id="onlineJokalariEgoera2">Jokalariaren zain</strong>
+              </article>
+            </div>
+          </div>
+
+          <p id="onlineLobbyFeedback" class="hasiera-mezua" aria-live="polite"></p>
+
+          <div class="online-lobby-ekintzak">
+            <button
+              id="onlinePrestBotoia"
+              class="botoia botoia--nagusia"
+              type="button"
+            >
+              Prest nago
+            </button>
+            <button
+              id="onlineEguneratuBotoia"
+              class="botoia botoia--biguna"
+              type="button"
+            >
+              Egoera eguneratu
+            </button>
+          </div>
+
+          <button
+            id="onlineLobbyBerrabiaraziBotoia"
+            class="botoia botoia--nagusia"
+            type="button"
+          >
+            Hasierara itzuli
+          </button>
+        </div>
+      </section>
+
+      <section id="onlinePrestPantaila" class="pantaila">
+        <div class="panel amaiera-panela lobby-panela">
+          <p class="etiketa">Online partida</p>
+          <h2 id="onlinePrestIzenburua">Partida hasteko prest</h2>
+          <p id="onlinePrestAzalpena" class="azalpena">
+            Bi jokalariak prest daude. Hurrengo online fasea prestatzen ari da.
+          </p>
+
+          <div class="online-lobby-grid">
+            <article>
+              <span>Gelaren kodea</span>
+              <strong id="onlinePrestRoomCode"></strong>
+            </article>
+            <article>
+              <span>Gaia</span>
+              <strong id="onlinePrestTopic"></strong>
+            </article>
+            <article>
+              <span>Maila</span>
+              <strong id="onlinePrestLevel"></strong>
+            </article>
+            <article>
+              <span>Egoera</span>
+              <strong id="onlinePrestStatus">Partida hasteko prest</strong>
+            </article>
+          </div>
+
+          <div class="online-jokalariak-blokea">
+            <p class="etiketa">Jokalarien egoerak</p>
+            <div class="online-jokalariak-grid">
+              <article id="onlinePrestTxartela1" class="online-jokalari-txartela">
+                <span>1. jokalaria</span>
+                <strong id="onlinePrestJokalari1">Prest</strong>
+              </article>
+              <article id="onlinePrestTxartela2" class="online-jokalari-txartela">
+                <span>2. jokalaria</span>
+                <strong id="onlinePrestJokalari2">Prest</strong>
+              </article>
+            </div>
+          </div>
+
+          <p id="onlinePrestFeedback" class="hasiera-mezua" aria-live="polite"></p>
+
+          <button
+            id="onlinePrestHasieraraBotoia"
+            class="botoia botoia--nagusia"
+            type="button"
+          >
+            Hasierara itzuli
+          </button>
+        </div>
+      </section>
+
+      <section id="onlineJokoPantaila" class="pantaila">
+        <div class="goiko-barra">
+          <div>
+            <p class="etiketa">Online partida</p>
+            <h2 class="goiburua">Partida hasi da</h2>
+          </div>
+          <button
+            id="onlineJokoBerrabiaraziBotoia"
+            class="botoia botoia--biguna"
+            type="button"
+          >
+            Hasierara itzuli
+          </button>
+        </div>
+
+        <section class="panel online-joko-informazioa">
+          <div class="online-lobby-grid">
+            <article>
+              <span>Gelaren kodea</span>
+              <strong id="onlineJokoRoomCode"></strong>
+            </article>
+            <article>
+              <span>Zure lekua</span>
+              <strong id="onlineJokoSeat"></strong>
+            </article>
+            <article>
+              <span>Zure roskoa</span>
+              <strong id="onlineJokoRosco"></strong>
+            </article>
+            <article>
+              <span>Txanda</span>
+              <strong id="onlineJokoTxanda"></strong>
+            </article>
+            <article>
+              <span>Txandako denbora</span>
+              <strong id="onlineJokoDenbora"></strong>
+            </article>
+            <article>
+              <span>Zure egoera</span>
+              <strong id="onlineJokoNireLaburpena"></strong>
+            </article>
+            <article>
+              <span>Aurkaria</span>
+              <strong id="onlineJokoAurkariLaburpena"></strong>
+            </article>
+          </div>
+        </section>
+
+        <div class="joko-edukia online-joko-edukia">
+          <section class="panel rosko-panela online-joko-rosko-panela">
+            <div class="rosko-goiburua">
+              <p class="etiketa">Roskoa</p>
+              <h3>Online taula</h3>
+            </div>
+            <div id="onlineJokoRoskoa" class="roskoa" aria-label="Online roskoa"></div>
+          </section>
+
+          <section class="panel galdera-panela online-joko-galdera-panela">
+            <p class="etiketa">Pista</p>
+            <div id="onlineJokoGalderaLetra" class="galdera-letra">?</div>
+            <p id="onlineJokoPista" class="galdera-pista">Roskoa kargatzen...</p>
+            <form id="onlineJokoFormulario" class="erantzun-formularioa" novalidate>
+              <label class="irakurgailuarentzat-bakarrik" for="onlineJokoErantzunaInput">
+                Erantzuna
+              </label>
+              <input
+                id="onlineJokoErantzunaInput"
+                type="text"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+                placeholder="Idatzi erantzuna"
+              />
+
+              <div class="botoi-ilara">
+                <button class="botoia botoia--nagusia" type="submit">
+                  Erantzun
+                </button>
+                <button
+                  id="onlineJokoPasapalabraBotoia"
+                  class="botoia botoia--biguna"
+                  type="button"
+                >
+                  Hitzapasa
+                </button>
+              </div>
+            </form>
+            <p id="onlineJokoMezua" class="hasiera-mezua" aria-live="polite"></p>
+          </section>
+        </div>
+      </section>
+
+      <section id="onlineAmaieraPantaila" class="pantaila">
+        <div class="panel amaiera-panela lobby-panela">
+          <p class="etiketa">Partida amaitu da</p>
+          <h2 id="onlineAmaieraIzenburua">Amaierako emaitza</h2>
+          <p id="onlineAmaieraAzalpena" class="azalpena">
+            Online partida behar bezala amaitu da.
+          </p>
+
+          <div class="online-lobby-grid">
+            <article>
+              <span>Gelaren kodea</span>
+              <strong id="onlineAmaieraRoomCode"></strong>
+            </article>
+            <article>
+              <span>Gaia</span>
+              <strong id="onlineAmaieraTopic"></strong>
+            </article>
+            <article>
+              <span>Maila</span>
+              <strong id="onlineAmaieraLevel"></strong>
+            </article>
+            <article>
+              <span>Irabazlea</span>
+              <strong id="onlineAmaieraIrabazlea"></strong>
+            </article>
+            <article>
+              <span>Amaiera arrazoia</span>
+              <strong id="onlineAmaieraArrazoia"></strong>
+            </article>
+          </div>
+
+          <div id="onlineAmaieraEmaitzak" class="azken-emaitzak"></div>
+
+          <p id="onlineAmaieraFeedback" class="hasiera-mezua" aria-live="polite"></p>
+
+          <button
+            id="onlineAmaieraBerrabiaraziBotoia"
+            class="botoia botoia--nagusia"
+            type="button"
+          >
+            Hasierara itzuli
           </button>
         </div>
       </section>

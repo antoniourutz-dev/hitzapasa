@@ -1,4 +1,4 @@
-const CACHE_IZENA = "hitzapasa-cache-v19";
+const CACHE_IZENA = "hitzapasa-cache-v29";
 const OINARRIZKO_ARTXIBOAK = [
   "/",
   "/index.html",

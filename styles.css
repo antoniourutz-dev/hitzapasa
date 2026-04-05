@@ -33,6 +33,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   min-height: 100%;
@@ -117,7 +121,9 @@ select {
 }
 
 .hero-panela,
+.konfigurazio-panela,
 .hasiera-panela,
+.online-sartu-panela,
 .trantsizio-panela,
 .amaiera-panela {
   width: min(100%, 720px);
@@ -148,6 +154,125 @@ select {
   padding: clamp(1.2rem, 3vw, 2rem);
   display: grid;
   gap: 1rem;
+}
+
+.konfigurazio-panela,
+.online-sartu-panela {
+  padding: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.online-sartu-panela--zabalik {
+  padding: clamp(1.2rem, 3vw, 2rem);
+  gap: 1rem;
+}
+
+.hasiera-ekintzak {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.online-sartu-panela .botoia {
+  width: 100%;
+}
+
+.online-toles-botoia {
+  border: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.online-toles-testuak {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.online-toles-testuak strong {
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
+.online-toles-azalpena {
+  color: var(--testu-biguna);
+  line-height: 1.4;
+}
+
+.online-toles-ikonoa {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.26);
+  background: rgba(56, 189, 248, 0.12);
+  position: relative;
+  transition:
+    transform var(--trantsizioa),
+    background-color var(--trantsizioa),
+    border-color var(--trantsizioa);
+}
+
+.online-toles-ikonoa::before,
+.online-toles-ikonoa::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.7rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--testu-nagusia);
+  transform-origin: center;
+}
+
+.online-toles-ikonoa::before {
+  transform: translate(-70%, -50%) rotate(45deg);
+}
+
+.online-toles-ikonoa::after {
+  transform: translate(-30%, -50%) rotate(-45deg);
+}
+
+.online-sartu-panela--zabalik .online-toles-ikonoa {
+  transform: rotate(180deg);
+}
+
+.online-sartu-edukia {
+  display: grid;
+  gap: 1rem;
+}
+
+.online-sartu-edukia[hidden] {
+  display: none !important;
+}
+
+.online-saio-blokea {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: var(--biribila-txikia);
+  background: rgba(8, 17, 34, 0.4);
+}
+
+.online-saio-ekintzak {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.online-banatzailea {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.35), transparent);
 }
 
 .etiketa {
@@ -603,6 +728,127 @@ select {
   margin: 1.4rem 0 1.8rem;
 }
 
+.online-lobby-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin: 1.4rem 0 1.8rem;
+}
+
+.online-lobby-grid article {
+  padding: 1rem;
+  background: rgba(8, 17, 34, 0.44);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: var(--biribila-txikia);
+  text-align: left;
+}
+
+.online-lobby-grid span {
+  display: block;
+  font-size: 0.86rem;
+  color: var(--testu-biguna);
+}
+
+.online-lobby-grid strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.online-jokalariak-blokea {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0 0 1.2rem;
+  text-align: left;
+}
+
+.online-jokalariak-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.online-jokalari-txartela {
+  padding: 1rem;
+  background: rgba(8, 17, 34, 0.44);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: var(--biribila-txikia);
+  transition:
+    border-color var(--trantsizioa),
+    box-shadow var(--trantsizioa),
+    background-color var(--trantsizioa);
+}
+
+.online-jokalari-txartela span {
+  display: block;
+  font-size: 0.86rem;
+  color: var(--testu-biguna);
+}
+
+.online-jokalari-txartela strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1.1rem;
+}
+
+.online-jokalari-txartela--uneko {
+  border-color: color-mix(in srgb, var(--txanda-azentu) 42%, rgba(148, 163, 184, 0.16));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--txanda-azentu) 20%, transparent);
+}
+
+.online-jokalari-txartela--prest {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(20, 83, 45, 0.18);
+}
+
+.online-jokalari-txartela--zain {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.online-jokalari-txartela--ez-prest {
+  border-color: rgba(246, 196, 83, 0.24);
+  background: rgba(120, 53, 15, 0.16);
+}
+
+.online-lobby-ekintzak {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.online-joko-informazioa,
+.online-joko-rosko-panela,
+.online-joko-galdera-panela {
+  padding: 1.2rem;
+}
+
+.online-joko-informazioa {
+  margin-bottom: 1rem;
+}
+
+.online-joko-informazioa .online-lobby-grid {
+  margin: 0;
+}
+
+.online-joko-edukia {
+  align-items: stretch;
+}
+
+.online-joko-rosko-panela {
+  background: linear-gradient(180deg, var(--txanda-panel-goia), var(--txanda-panel-behea));
+  border-color: color-mix(in srgb, var(--txanda-azentu) 36%, rgba(148, 163, 184, 0.16));
+  box-shadow:
+    0 24px 50px rgba(3, 7, 18, 0.38),
+    inset 0 0 0 1px color-mix(in srgb, var(--txanda-azentu) 12%, transparent);
+}
+
+.online-joko-galdera-panela {
+  min-height: 100%;
+}
+
 .azken-emaitzak article {
   padding: 1rem;
   text-align: left;
@@ -651,7 +897,9 @@ select {
 
 @media (max-width: 920px) {
   .joko-edukia,
-  .azken-emaitzak {
+  .azken-emaitzak,
+  .online-lobby-grid,
+  .online-jokalariak-grid {
     grid-template-columns: 1fr;
   }
 
@@ -698,6 +946,33 @@ select {
     order: 2;
     grid-template-columns: 1fr;
     gap: 0.75rem;
+  }
+
+  #onlineJokoPantaila .goiko-barra {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.55rem;
+  }
+
+  #onlineJokoPantaila .goiko-barra .botoia {
+    width: auto;
+    min-width: 0;
+    align-self: center;
+    padding: 0.38rem 0.62rem;
+    border-radius: 11px;
+    font-size: 0.74rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  #onlineJokoPantaila .joko-edukia {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  #onlineJokoPantaila .online-joko-informazioa {
+    margin-bottom: 0.75rem;
   }
 
   #jokoPantaila .egoera-sarea {
@@ -754,6 +1029,10 @@ select {
     padding: 0.8rem 0.2rem 0.95rem;
   }
 
+  .online-joko-rosko-panela {
+    padding: 0.8rem 0.2rem 0.95rem;
+  }
+
   .rosko-goiburua {
     display: none;
   }
@@ -772,7 +1051,10 @@ select {
   }
 
   .jokalari-estatistikak,
-  .botoi-ilara {
+  .botoi-ilara,
+  .hasiera-ekintzak,
+  .online-lobby-ekintzak,
+  .online-saio-ekintzak {
     grid-template-columns: 1fr;
   }
 

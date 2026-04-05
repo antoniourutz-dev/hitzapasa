@@ -1,0 +1,20 @@
+[functions.create_match]
+verify_jwt = false
+
+[functions.join_match]
+verify_jwt = false
+
+[functions.set_ready]
+verify_jwt = false
+
+[functions.start_match]
+verify_jwt = false
+
+[functions.submit_answer]
+verify_jwt = false
+
+[functions.pass_turn]
+verify_jwt = false
+
+[functions.handle_timeout]
+verify_jwt = false
