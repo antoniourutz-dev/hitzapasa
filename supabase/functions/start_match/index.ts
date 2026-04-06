@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
     const [rosco1, rosco2] = await pickTwoDistinctRoscos(admin, match.topic, match.level)
 
     if (!rosco1 || !rosco2 || rosco1 === rosco2) {
-      return jsonResponse({ error: 'Ez dago nahikoa roskorik' }, 400)
+      return jsonResponse({ error: 'Ez dago nahikoa erroskarik' }, 400)
     }
 
     const [questions1, questions2] = await Promise.all([
@@ -341,7 +341,7 @@ async function pickTwoDistinctRoscos(
   const roscos = aukera ?? (await fallbackPickTwoDistinctRoscos(supabase, topic, level))
 
   if (!Array.isArray(roscos) || roscos.length < 2) {
-    throw new Error('Ez dago nahikoa roskorik')
+    throw new Error('Ez dago nahikoa erroskarik')
   }
 
   return [roscos[0], roscos[1]]
@@ -492,7 +492,7 @@ async function loadRoscoQuestions(
 
 function validateQuestions(rows: QuestionRow[]) {
   if (!isValidQuestionSet(rows)) {
-    throw new Error('Rosko bakoitzak 25 galdera baliodun behar ditu')
+    throw new Error('Erroska bakoitzak 25 galdera baliodun behar ditu')
   }
 }
 
@@ -657,7 +657,7 @@ async function updateMatchPlayers(
       .single()
 
     if (error || !data) {
-      throw new Error(error?.message ?? 'Ezin izan da jokalariaren roskoa eguneratu')
+      throw new Error(error?.message ?? 'Ezin izan da jokalariaren erroska eguneratu')
     }
 
     updatedRows.push(data as MatchPlayerRow)

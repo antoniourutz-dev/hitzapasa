@@ -287,12 +287,12 @@ function beharrezkoRoskoKopurua(jokoModua = egoera.jokoModua) {
 
 function itzuliRoskoEskakizunMezua(jokoModua = egoera.jokoModua) {
   if (!jokoModuaAukeratutaDago(jokoModua)) {
-    return "Ez dago rosko erabilgarririk";
+    return "Ez dago erroska erabilgarririk";
   }
 
   return bakarkakoJokoaDa(jokoModua)
-    ? "Ez dago rosko erabilgarririk"
-    : "Ez dago nahikoa roskorik";
+    ? "Ez dago erroska erabilgarririk"
+    : "Ez dago nahikoa erroskarik";
 }
 
 function jokoModuaJokalariKopurutik(jokalariKopurua) {
@@ -310,8 +310,8 @@ function jokoModuaJokalariKopurutik(jokalariKopurua) {
 function eguneratuRoskoEskuragarritasunMezua() {
   const mezuAldagarriak = new Set([
     "",
-    "Ez dago rosko erabilgarririk",
-    "Ez dago nahikoa roskorik",
+    "Ez dago erroska erabilgarririk",
+    "Ez dago nahikoa erroskarik",
   ]);
 
   if (
@@ -325,7 +325,7 @@ function eguneratuRoskoEskuragarritasunMezua() {
 
   if (!jokoModuaAukeratutaDago()) {
     if (egoera.aukerak.roscos.length === 0) {
-      ezarriHasieraMezua("Ez dago rosko erabilgarririk", "okerra");
+      ezarriHasieraMezua("Ez dago erroska erabilgarririk", "okerra");
     } else {
       ezarriHasieraMezua("", "oharra");
     }
@@ -488,13 +488,13 @@ function egiaztatuJokalarienRoskak(jokalariak, konfigurazioa) {
 
   if (bakarkakoJokoaDa(jokoModua)) {
     if (!jokalariak[0]?.rosco) {
-      throw new Error("Jokalariak rosko bat behar du.");
+      throw new Error("Jokalariak erroska bat behar du.");
     }
   } else {
     const [bat, bi] = jokalariak;
 
     if (!bat.rosco || !bi.rosco || bat.rosco === bi.rosco) {
-      throw new Error("Jokalariek rosko bana eta desberdina behar dute.");
+      throw new Error("Jokalariek erroska bana eta desberdina behar dute.");
     }
   }
 
@@ -509,7 +509,7 @@ function egiaztatuJokalarienRoskak(jokalariak, konfigurazioa) {
           galdera.rosco !== jokalaria.rosco,
       )
     ) {
-      throw new Error("Roskoaren datuak ez datoz bat.");
+      throw new Error("Erroskaren datuak ez datoz bat.");
     }
   });
 }
@@ -1065,11 +1065,12 @@ function itzuliOnlineErrorea(mota, mezua = "") {
 
   if (
     arrunta.includes("rosko") ||
+    arrunta.includes("erroska") ||
     arrunta.includes("nahikoa") ||
     arrunta.includes("25 galdera") ||
     arrunta.includes("question count")
   ) {
-    return "Ez dago nahikoa roskorik";
+    return "Ez dago nahikoa erroskarik";
   }
 
   if (
@@ -1828,7 +1829,7 @@ function itzuliOnlineJokoMezua() {
 
   if (onlineJokoaKargatzenDa()) {
     return {
-      mezua: "Roskoa kargatzen...",
+      mezua: "Erroska kargatzen...",
       mota: "oharra",
     };
   }
@@ -1903,7 +1904,7 @@ function itzuliOnlineJokoMezua() {
 
 function itzuliOnlineAmaieraArrazoia(reason) {
   if (reason === "completed_rosco") {
-    return "Roskoa osatuta";
+    return "Erroska osatuta";
   }
 
   if (reason === "time_expired") {
@@ -2184,11 +2185,13 @@ function renderStartScreen() {
   const moduaAukeratuta = jokoModuaAukeratutaDago();
   dom.jokoModuaBakarka.checked = egoera.jokoModua === JOKO_MODUA_BAKARKA;
   dom.jokoModuaBinaka.checked = egoera.jokoModua === JOKO_MODUA_BINAKA;
-  dom.jokoLokalaAzalpena.textContent = !moduaAukeratuta
-    ? "Aukeratu bakarka ala binaka jolastu nahi duzun."
-    : bakarkakoJokoaDa()
-      ? "Zure izena idatzi eta bakarrik jokatu."
-      : "Bi jokalarien izenak idatzi eta gailu berean jokatu.";
+  if (dom.jokoLokalaAzalpena) {
+    dom.jokoLokalaAzalpena.textContent = !moduaAukeratuta
+      ? "Aukeratu bakarka ala binaka jolastu nahi duzun."
+      : bakarkakoJokoaDa()
+        ? "Zure izena idatzi eta bakarrik jokatu."
+        : "Bi jokalarien izenak idatzi eta gailu berean jokatu.";
+  }
   dom.jokalari1Label.textContent = bakarkakoJokoaDa() ? "Jokalaria" : "1. jokalaria";
   dom.jokalari1Izena.placeholder = bakarkakoJokoaDa() ? "Jokalaria" : "1. jokalaria";
   dom.jokalari1Eremua.hidden = !moduaAukeratuta;
@@ -2349,7 +2352,7 @@ async function kargatuRoskak(topic, level) {
 
     if (!jokoModuaAukeratutaDago()) {
       ezarriHasieraMezua(
-        egoera.aukerak.roscos.length === 0 ? "Ez dago rosko erabilgarririk" : "",
+        egoera.aukerak.roscos.length === 0 ? "Ez dago erroska erabilgarririk" : "",
         egoera.aukerak.roscos.length === 0 ? "okerra" : "oharra",
       );
     } else if (egoera.aukerak.roscos.length < beharrezkoRoskoKopurua()) {
@@ -2359,7 +2362,7 @@ async function kargatuRoskak(topic, level) {
     }
   } catch (_errorea) {
     egoera.aukerak.roscos = [];
-    ezarriHasieraMezua("Ezin izan dira roskoak kargatu", "okerra");
+    ezarriHasieraMezua("Ezin izan dira erroskak kargatu", "okerra");
   } finally {
     egoera.kargatzen.roscos = false;
     renderStartScreen();
@@ -3330,7 +3333,7 @@ function renderOnlineGameScreen() {
   dom.onlineJokoAurkariLaburpena.textContent = itzuliOnlineLaburpena(aurkaria);
   dom.onlineJokoGalderaLetra.textContent = nireTxanda ? unekoGaldera?.letter || "?" : "-";
   dom.onlineJokoPista.textContent = onlineJokoaKargatzenDa()
-    ? "Roskoa kargatzen..."
+    ? "Erroska kargatzen..."
     : nireTxanda
       ? unekoGaldera?.clue || "Ez dago galdera erabilgarririk"
       : "Beste jokalariaren txanda";
@@ -3862,7 +3865,7 @@ function renderJokalariTxartela(indizea) {
     <div>
       <p class="etiketa">${aktiboa ? "Uneko txanda" : "Jokalaria"}</p>
       <h3 class="jokalari-izena">${jokalaria.izena}</h3>
-      <p class="jokalari-roskoa">Roskoa: ${jokalaria.rosco}</p>
+      <p class="jokalari-roskoa">Erroska: ${jokalaria.rosco}</p>
     </div>
     <div class="jokalari-estatistikak">
       <div>
@@ -4090,7 +4093,7 @@ function renderResultsScreen() {
       return `
         <article>
           <h3>${jokalaria.izena}</h3>
-          <p class="amaiera-roskoa">Roskoa: ${jokalaria.rosco}</p>
+          <p class="amaiera-roskoa">Erroska: ${jokalaria.rosco}</p>
           <dl>
             <dt>Asmatuak</dt>
             <dd>${jokalaria.asmatuak}</dd>
@@ -4428,9 +4431,9 @@ function checkEndOfTurn() {
 
   if (kalkulatuPendienteak(jokalaria) === 0) {
     jokalaria.amaituta = true;
-    egoera.feedback = "Roskoa osatu duzu";
+    egoera.feedback = "Erroska osatu duzu";
     egoera.feedbackMota = "zuzena";
-    egoera.amaieraArrazoia = "Roskoa osatu duzu";
+    egoera.amaieraArrazoia = "Erroska osatu duzu";
     showFinalResults();
     return true;
   }
