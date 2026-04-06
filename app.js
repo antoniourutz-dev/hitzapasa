@@ -598,10 +598,6 @@ function sortuNahasketaRoskoId() {
   return `${NAHASKETA_ROSKO_AURREZKIA}${Date.now().toString(36)}-${ausazkoZatia}`;
 }
 
-function itzuliNahasketaIturriGakoa(topic, rosco) {
-  return `${garbituKatea(topic)}::${garbituKatea(rosco)}`;
-}
-
 function normalizatuNahasketaGaldera(galdera, level, rosco) {
   return {
     ...galdera,
@@ -616,96 +612,43 @@ function normalizatuNahasketaGaldera(galdera, level, rosco) {
   };
 }
 
-function taldekatuNahasketaIturriak(lerroak, level) {
-  const taldeak = new Map();
-
-  lerroak.forEach((lerroa) => {
-    const galdera = normalizatuGalderaLerroa(lerroa);
-
-    if (
-      !galdera.topic ||
-      !galdera.rosco ||
-      !galdera.level ||
-      galdera.level !== level ||
-      gaiaNahasketaDa(galdera.topic)
-    ) {
-      return;
-    }
-
-    const gakoa = itzuliNahasketaIturriGakoa(galdera.topic, galdera.rosco);
-    const taldea = taldeak.get(gakoa) ?? {
-      key: gakoa,
-      topic: galdera.topic,
-      rosco: galdera.rosco,
-      galderak: [],
-    };
-    taldea.galderak.push(galdera);
-    taldeak.set(gakoa, taldea);
-  });
-
-  return [...taldeak.values()]
-    .map((taldea) => ({
-      ...taldea,
-      galderak: [...taldea.galderak].sort((bat, bi) => bat.slotOrder - bi.slotOrder),
-    }))
-    .filter((taldea) => {
-      try {
-        egiaztatuGalderak(taldea.galderak);
-        return true;
-      } catch (_errorea) {
-        return false;
-      }
-    });
-}
 
 async function kargatuNahasketaIturriak(level) {
   const datuak = await eginSupabaseEskaera("*", { active: true, level }, "topic");
-  console.log("[nahasketa] galdera guztiak:", datuak.length, "level:", level);
-  const iturriak = taldekatuNahasketaIturriak(datuak, level);
-  console.log("[nahasketa] iturriak (rosco taldeak):", iturriak.map((i) => `${i.key}(${i.galderak.length})`));
-  return iturriak;
+  return datuak
+    .map(normalizatuGalderaLerroa)
+    .filter((g) => g.topic && g.rosco && g.level === level && !gaiaNahasketaDa(g.topic) && g.letter && g.clue && g.answer);
 }
 
-function sortuNahastutakoGalderak(iturriak, level, rosco = sortuNahasketaRoskoId()) {
-  if (!Array.isArray(iturriak) || iturriak.length === 0) {
+function sortuNahastutakoGalderak(galderaGuztiak, level, rosco = sortuNahasketaRoskoId()) {
+  if (!Array.isArray(galderaGuztiak) || galderaGuztiak.length === 0) {
     throw new Error("rosko-gutxiegi");
   }
 
-  const letrak = iturriak[0].galderak.map((g) => g.letter);
-  const erabilerak = new Map();
-  let aurrekoIturria = "";
-  const galderak = [];
+  // Taldekatu letra bakoitzeko galdera guztiak
+  const galderakLetraka = new Map();
+  galderaGuztiak.forEach((galdera) => {
+    const letroa = galdera.letter;
+    if (!letroa) return;
+    const zerrenda = galderakLetraka.get(letroa) ?? [];
+    zerrenda.push(galdera);
+    galderakLetraka.set(letroa, zerrenda);
+  });
 
-  for (const letter of letrak) {
-    const hautagaiak = iturriak
-      .map((iturria) => ({
-        key: iturria.key,
-        galdera: iturria.galderak.find((item) => item.letter === letter) ?? null,
-      }))
-      .filter((iturria) => iturria.galdera);
-
-    if (hautagaiak.length === 0) {
-      throw new Error("rosko-gutxiegi");
-    }
-
-    const nahastuta = nahastuAusaz(hautagaiak);
-    const aurrekoaSaihestuta = nahastuta.filter((iturria) => iturria.key !== aurrekoIturria);
-    const aukeragarriak = aurrekoaSaihestuta.length > 0 ? aurrekoaSaihestuta : nahastuta;
-    aukeragarriak.sort(
-      (bat, bi) => (erabilerak.get(bat.key) ?? 0) - (erabilerak.get(bi.key) ?? 0),
-    );
-
-    const hautatua = aukeragarriak[0];
-    aurrekoIturria = hautatua.key;
-    erabilerak.set(hautatua.key, (erabilerak.get(hautatua.key) ?? 0) + 1);
-    galderak.push(normalizatuNahasketaGaldera(hautatua.galdera, level, rosco));
+  if (galderakLetraka.size < 25) {
+    throw new Error("rosko-gutxiegi");
   }
 
+  // Letra bakoitzeko ausazko galdera bat hautatu
+  const letrak = [...galderakLetraka.keys()].sort();
+  const galderak = letrak.map((letter) => {
+    const aukeragarriak = galderakLetraka.get(letter);
+    const hautatua = nahastuAusaz(aukeragarriak)[0];
+    return normalizatuNahasketaGaldera(hautatua, level, rosco);
+  });
+
   egiaztatuGalderak(galderak);
-  return {
-    rosco,
-    galderak,
-  };
+  return { rosco, galderak };
 }
 
 function lortuOnlineAzkenGertaerarenPayloada(gertaera) {
@@ -2654,13 +2597,14 @@ async function kargatuRoskak(topic, level) {
 
   try {
     if (gaiaNahasketaDa(topic)) {
-      const iturriak = await kargatuNahasketaIturriak(level);
+      const galderaGuztiak = await kargatuNahasketaIturriak(level);
 
       if (egoera.konfigurazioa.topic !== topic || egoera.konfigurazioa.level !== level) {
         return;
       }
 
-      egoera.aukerak.roscos = iturriak.map((iturria) => iturria.key);
+      const letrakDaude = new Set(galderaGuztiak.map((g) => g.letter)).size >= 25;
+      egoera.aukerak.roscos = letrakDaude ? [GAIA_NAHASKETA] : [];
     } else {
       const datuak = await eginSupabaseEskaera(
         "rosco",
@@ -2747,14 +2691,15 @@ async function kargatuBiJokalarienGalderak() {
   const { topic, level } = egoera.konfigurazioa;
 
   if (gaiaNahasketaDa(topic)) {
-    const iturriak = await kargatuNahasketaIturriak(level);
+    const galderaGuztiak = await kargatuNahasketaIturriak(level);
+    const letrakDaude = new Set(galderaGuztiak.map((g) => g.letter)).size >= 25;
 
-    if (iturriak.length < 2) {
+    if (!letrakDaude) {
       throw new Error("rosko-gutxiegi");
     }
 
-    const nahasketa1 = sortuNahastutakoGalderak(iturriak, level);
-    const nahasketa2 = sortuNahastutakoGalderak(iturriak, level);
+    const nahasketa1 = sortuNahastutakoGalderak(galderaGuztiak, level);
+    const nahasketa2 = sortuNahastutakoGalderak(galderaGuztiak, level);
 
     return {
       rosco1: nahasketa1.rosco,
@@ -2787,13 +2732,14 @@ async function kargatuBakarkakoGalderak() {
   const { topic, level } = egoera.konfigurazioa;
 
   if (gaiaNahasketaDa(topic)) {
-    const iturriak = await kargatuNahasketaIturriak(level);
+    const galderaGuztiak = await kargatuNahasketaIturriak(level);
+    const letrakDaude = new Set(galderaGuztiak.map((g) => g.letter)).size >= 25;
 
-    if (iturriak.length < 1) {
+    if (!letrakDaude) {
       throw new Error("rosko-gutxiegi");
     }
 
-    return sortuNahastutakoGalderak(iturriak, level);
+    return sortuNahastutakoGalderak(galderaGuztiak, level);
   }
 
   const rosco = esleituBakarkakoRoskoa(egoera.aukerak.roscos);
@@ -4678,7 +4624,6 @@ async function initGame() {
     }
     egiaztatuJokalarienRoskak(egoera.jokalariak, egoera.konfigurazioa);
   } catch (errorea) {
-    console.error("[initGame] errorea:", errorea);
     egoera.jokalariak = [];
     ezarriHasieraMezua(
       errorea instanceof Error && errorea.message === "rosko-gutxiegi"
