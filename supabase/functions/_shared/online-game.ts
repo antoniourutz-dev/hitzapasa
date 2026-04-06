@@ -29,9 +29,14 @@ export type MatchPlayerRow = {
 export type QuestionRow = {
   slot_order: number
   letter: string
+  topic?: string
+  level?: string
+  rosco?: string
   clue?: string
   answer: string
   accepted_answers?: string[]
+  source_topic?: string
+  source_rosco?: string
 }
 
 export type GameLetterState = {
@@ -49,6 +54,7 @@ export type GamePlayerState = {
   unanswered: number
   timeRemainingMs: number
   letters: GameLetterState[]
+  questions: QuestionRow[]
 }
 
 export type GameState = {
@@ -116,6 +122,25 @@ export function normalizatuAcceptedAnswers(rawValue: unknown): string[] {
   }
 
   return []
+}
+
+export function normalizatuGaldera(rawValue: Partial<QuestionRow>): QuestionRow {
+  const row = rawValue as Record<string, unknown>
+
+  return {
+    slot_order: Number(rawValue.slot_order ?? row.slotOrder ?? 0),
+    letter: `${rawValue.letter ?? ''}`.trim().toUpperCase(),
+    topic: `${rawValue.topic ?? ''}`.trim() || undefined,
+    level: `${rawValue.level ?? ''}`.trim() || undefined,
+    rosco: `${rawValue.rosco ?? ''}`.trim() || undefined,
+    clue: `${rawValue.clue ?? ''}`.trim(),
+    answer: `${rawValue.answer ?? ''}`.trim(),
+    accepted_answers: normalizatuAcceptedAnswers(
+      rawValue.accepted_answers ?? row.acceptedAnswers
+    ),
+    source_topic: `${rawValue.source_topic ?? row.sourceTopic ?? ''}`.trim() || undefined,
+    source_rosco: `${rawValue.source_rosco ?? row.sourceRosco ?? ''}`.trim() || undefined,
+  }
 }
 
 export function erantzunaBaliozkoaDa(answer: string, galdera: QuestionRow) {
@@ -228,6 +253,9 @@ function normalizatuGameStateJokalaria(
     unanswered: Number(jokalaria.unanswered ?? stats.unanswered),
     timeRemainingMs: Number(jokalaria.timeRemainingMs ?? HASIERAKO_DENBORA_MS),
     letters,
+    questions: Array.isArray(jokalaria.questions)
+      ? jokalaria.questions.map((galdera) => normalizatuGaldera(galdera))
+      : [],
   }
 }
 
@@ -243,6 +271,9 @@ export function kopiatuGameStateJokalaria(jokalaria: GamePlayerState): GamePlaye
   return {
     ...jokalaria,
     letters: jokalaria.letters.map((letter) => ({ ...letter })),
+    questions: Array.isArray(jokalaria.questions)
+      ? jokalaria.questions.map((galdera) => ({ ...galdera }))
+      : [],
   }
 }
 
@@ -516,6 +547,16 @@ export async function lortuUnekoGaldera(
     throw new Error('Ez dago letra pendienterik')
   }
 
+  const gameStateGaldera = Array.isArray(jokalaria.questions)
+    ? jokalaria.questions.find(
+        (galdera) => Number(galdera.slot_order ?? 0) === Number(jokalaria.currentSlotOrder)
+      ) ?? null
+    : null
+
+  if (gameStateGaldera) {
+    return normalizatuGaldera(gameStateGaldera)
+  }
+
   const { data, error } = await supabase
     .from('hitzapasa')
     .select('slot_order, letter, clue, answer, accepted_answers')
@@ -530,13 +571,7 @@ export async function lortuUnekoGaldera(
     throw new Error('Ezin izan da uneko galdera aurkitu')
   }
 
-  return {
-    slot_order: Number(data.slot_order ?? 0),
-    letter: `${data.letter ?? ''}`.trim().toUpperCase(),
-    clue: `${data.clue ?? ''}`.trim(),
-    answer: `${data.answer ?? ''}`.trim(),
-    accepted_answers: normalizatuAcceptedAnswers(data.accepted_answers),
-  }
+  return normalizatuGaldera(data ?? {})
 }
 
 async function eguneratuPartidaLerroNagusia(

@@ -1,6 +1,6 @@
 import {
   SUPABASE_URL,
-  lortuSupabaseHeaders,
+  lortuSupabaseEskaeraHeaders,
   supabase,
   supabaseKonfiguratutaDago,
 } from "./supabaseClient.js";
@@ -8,7 +8,6 @@ import {
 const HASIERAKO_DENBORA = 300;
 const FEEDBACK_IKUSGAI_DENBORA_MS = 5000;
 const GORDE_GAKOA = "hitzapasa-egoera-v10";
-const SUPABASE_HEADERS = lortuSupabaseHeaders();
 const JOKO_MODUA_GABE = "";
 const JOKO_MODUA_BAKARKA = "bakarka";
 const JOKO_MODUA_BINAKA = "binaka";
@@ -614,10 +613,48 @@ function normalizatuNahasketaGaldera(galdera, level, rosco) {
 
 
 async function kargatuNahasketaIturriak(level) {
-  const datuak = await eginSupabaseEskaera("*", { active: true, level }, "topic");
+  const datuak = await eginSupabaseEskaeraOrrialdekatuta(
+    "*",
+    { active: true, level },
+    ["topic.asc", "rosco.asc", "slot_order.asc"],
+  );
   return datuak
     .map(normalizatuGalderaLerroa)
     .filter((g) => g.topic && g.rosco && g.level === level && !gaiaNahasketaDa(g.topic) && g.letter && g.clue && g.answer);
+}
+
+/** Erroska baliodun bat: 25 galdera, letra desberdinak (zerbitzariaren isValidQuestionSet bezala). */
+function nahasketaErreferentziaAurkitu(galderaGuztiak) {
+  const taldeak = new Map();
+
+  galderaGuztiak.forEach((g) => {
+    if (!g.topic || !g.rosco || !g.letter) {
+      return;
+    }
+
+    const gakoa = `${g.topic}::${g.rosco}`;
+    const zerrenda = taldeak.get(gakoa) ?? [];
+    zerrenda.push(g);
+    taldeak.set(gakoa, zerrenda);
+  });
+
+  for (const galderak of taldeak.values()) {
+    const ordenatuta = [...galderak].sort((a, b) => a.slotOrder - b.slotOrder);
+
+    if (ordenatuta.length !== 25) {
+      continue;
+    }
+
+    const letrak = ordenatuta.map((g) => g.letter);
+
+    if (new Set(letrak).size !== 25) {
+      continue;
+    }
+
+    return letrak;
+  }
+
+  return null;
 }
 
 function sortuNahastutakoGalderak(galderaGuztiak, level, rosco = sortuNahasketaRoskoId()) {
@@ -625,17 +662,7 @@ function sortuNahastutakoGalderak(galderaGuztiak, level, rosco = sortuNahasketaR
     throw new Error("rosko-gutxiegi");
   }
 
-  // Bilatu 25 letretako erreferentzia-multzoa lehen rosco osoaren bidez
-  const roskoakLetraka = new Map();
-  galderaGuztiak.forEach((galdera) => {
-    if (!galdera.letter) return;
-    const rosko = `${galdera.topic}::${galdera.rosco}`;
-    const zerrenda = roskoakLetraka.get(rosko) ?? [];
-    zerrenda.push(galdera.letter);
-    roskoakLetraka.set(rosko, zerrenda);
-  });
-
-  const errefLetrak = [...roskoakLetraka.values()].find((letrak) => letrak.length === 25);
+  const errefLetrak = nahasketaErreferentziaAurkitu(galderaGuztiak);
 
   if (!errefLetrak) {
     throw new Error("rosko-gutxiegi");
@@ -655,11 +682,17 @@ function sortuNahastutakoGalderak(galderaGuztiak, level, rosco = sortuNahasketaR
     throw new Error("rosko-gutxiegi");
   }
 
-  // Letra bakoitzeko ausazko galdera bat hautatu
-  const galderak = errefLetrak.map((letter) => {
+  // Letra bakoitzeko ausazko galdera bat hautatu; slot 1–25 erroska mistoarentzat
+  const galderak = errefLetrak.map((letter, indizea) => {
     const aukeragarriak = galderakLetraka.get(letter);
     const hautatua = nahastuAusaz(aukeragarriak)[0];
-    return normalizatuNahasketaGaldera(hautatua, level, rosco);
+    const tartea = indizea + 1;
+
+    return normalizatuNahasketaGaldera(
+      { ...hautatua, slotOrder: tartea, slot_order: tartea },
+      level,
+      rosco,
+    );
   });
 
   egiaztatuGalderak(galderak);
@@ -984,7 +1017,11 @@ function eraikiSupabaseParametroak(select, filtroak = {}, orderBy) {
   });
 
   if (orderBy) {
-    parametroak.set("order", `${orderBy}.asc`);
+    if (Array.isArray(orderBy)) {
+      parametroak.set("order", orderBy.join(","));
+    } else {
+      parametroak.set("order", `${orderBy}.asc`);
+    }
   }
 
   return parametroak.toString();
@@ -995,9 +1032,10 @@ async function eginSupabaseEskaera(select, filtroak = {}, orderBy) {
     throw new Error("supabase-konfiguratu-gabe");
   }
 
+  const headers = await lortuSupabaseEskaeraHeaders();
   const parametroak = eraikiSupabaseParametroak(select, filtroak, orderBy);
   const erantzuna = await fetch(`${SUPABASE_URL}/rest/v1/hitzapasa?${parametroak}`, {
-    headers: SUPABASE_HEADERS,
+    headers,
   });
 
   if (!erantzuna.ok) {
@@ -1005,6 +1043,53 @@ async function eginSupabaseEskaera(select, filtroak = {}, orderBy) {
   }
 
   return erantzuna.json();
+}
+
+/** Supabase RESTek lehenetsi 1000 lerro itzultzen ditu; guztizko nahasketa baterako orrialdekatzea. */
+async function eginSupabaseEskaeraOrrialdekatuta(
+  select,
+  filtroak = {},
+  orderBy,
+  orrialdeTamaina = 1000,
+) {
+  if (!supabaseKonfiguratutaDago()) {
+    throw new Error("supabase-konfiguratu-gabe");
+  }
+
+  const emaitzak = [];
+  let offset = 0;
+  const headers = await lortuSupabaseEskaeraHeaders();
+
+  while (true) {
+    const oinarria = eraikiSupabaseParametroak(select, filtroak, orderBy);
+    const parametroak = new URLSearchParams(oinarria);
+    parametroak.set("limit", String(orrialdeTamaina));
+    parametroak.set("offset", String(offset));
+
+    const erantzuna = await fetch(`${SUPABASE_URL}/rest/v1/hitzapasa?${parametroak.toString()}`, {
+      headers,
+    });
+
+    if (!erantzuna.ok) {
+      throw new Error("supabase");
+    }
+
+    const zatia = await erantzuna.json();
+
+    if (!Array.isArray(zatia) || zatia.length === 0) {
+      break;
+    }
+
+    emaitzak.push(...zatia);
+
+    if (zatia.length < orrialdeTamaina) {
+      break;
+    }
+
+    offset += orrialdeTamaina;
+  }
+
+  return emaitzak;
 }
 
 function aukerakBakarrik(lerroak, gakoa) {
@@ -2618,8 +2703,8 @@ async function kargatuRoskak(topic, level) {
         return;
       }
 
-      const letrakDaude = new Set(galderaGuztiak.map((g) => g.letter)).size >= 25;
-      egoera.aukerak.roscos = letrakDaude ? [GAIA_NAHASKETA] : [];
+      const nahasketaPrest = Boolean(nahasketaErreferentziaAurkitu(galderaGuztiak));
+      egoera.aukerak.roscos = nahasketaPrest ? [GAIA_NAHASKETA] : [];
     } else {
       const datuak = await eginSupabaseEskaera(
         "rosco",
@@ -2707,9 +2792,8 @@ async function kargatuBiJokalarienGalderak() {
 
   if (gaiaNahasketaDa(topic)) {
     const galderaGuztiak = await kargatuNahasketaIturriak(level);
-    const letrakDaude = new Set(galderaGuztiak.map((g) => g.letter)).size >= 25;
 
-    if (!letrakDaude) {
+    if (!nahasketaErreferentziaAurkitu(galderaGuztiak)) {
       throw new Error("rosko-gutxiegi");
     }
 
@@ -2748,9 +2832,8 @@ async function kargatuBakarkakoGalderak() {
 
   if (gaiaNahasketaDa(topic)) {
     const galderaGuztiak = await kargatuNahasketaIturriak(level);
-    const letrakDaude = new Set(galderaGuztiak.map((g) => g.letter)).size >= 25;
 
-    if (!letrakDaude) {
+    if (!nahasketaErreferentziaAurkitu(galderaGuztiak)) {
       throw new Error("rosko-gutxiegi");
     }
 

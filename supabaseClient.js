@@ -36,3 +36,25 @@ export function lortuSupabaseHeaders() {
     Authorization: `Bearer ${SUPABASE_KEY}`,
   };
 }
+
+/** PostgREST RLS erabiltzen du: anon gakoa beti, baina saioa badago JWT erabiltzailearena bidali. */
+export async function lortuSupabaseEskaeraHeaders() {
+  const oinarria = lortuSupabaseHeaders();
+
+  if (!supabase) {
+    return oinarria;
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session?.access_token) {
+    return {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+    };
+  }
+
+  return oinarria;
+}

@@ -31,6 +31,11 @@ type QuestionRow = {
   clue: string
   answer: string
   accepted_answers?: string[]
+  topic?: string
+  level?: string
+  rosco?: string
+  source_topic?: string
+  source_rosco?: string
 }
 
 type PlayerState = {
@@ -41,12 +46,16 @@ type PlayerState = {
   errors: number
   unanswered: number
   timeRemainingMs: number
+  questions: QuestionRow[]
   letters: Array<{
     slotOrder: number
     letter: string
     status: 'pending'
   }>
 }
+
+const GAIA_NAHASKETA = 'nahasketa'
+const NAHASKETA_ROSKO_AURREZKIA = 'nahasketa::'
 
 function normalizatuAcceptedAnswers(rawValue: unknown): string[] {
   if (Array.isArray(rawValue)) {
@@ -78,6 +87,40 @@ function normalizatuAcceptedAnswers(rawValue: unknown): string[] {
   }
 
   return []
+}
+
+function gaiaNahasketaDa(topic: string) {
+  return `${topic ?? ''}`.trim().toLowerCase() === GAIA_NAHASKETA
+}
+
+function normalizatuGaldera(rawValue: Partial<QuestionRow>): QuestionRow {
+  return {
+    slot_order: Number(rawValue.slot_order ?? 0),
+    letter: String(rawValue.letter ?? '').trim().toUpperCase(),
+    clue: String(rawValue.clue ?? '').trim(),
+    answer: String(rawValue.answer ?? '').trim(),
+    accepted_answers: normalizatuAcceptedAnswers(rawValue.accepted_answers),
+    topic: String(rawValue.topic ?? '').trim() || undefined,
+    level: String(rawValue.level ?? '').trim() || undefined,
+    rosco: String(rawValue.rosco ?? '').trim() || undefined,
+    source_topic: String(rawValue.source_topic ?? '').trim() || undefined,
+    source_rosco: String(rawValue.source_rosco ?? '').trim() || undefined,
+  }
+}
+
+function nahastuAusaz<T>(zerrenda: T[]) {
+  const kopia = [...zerrenda]
+
+  for (let indizea = kopia.length - 1; indizea > 0; indizea -= 1) {
+    const ausazkoa = Math.floor(Math.random() * (indizea + 1))
+    ;[kopia[indizea], kopia[ausazkoa]] = [kopia[ausazkoa], kopia[indizea]]
+  }
+
+  return kopia
+}
+
+function sortuNahasketaRoscoId() {
+  return `${NAHASKETA_ROSKO_AURREZKIA}${crypto.randomUUID()}`
 }
 
 Deno.serve(async (req) => {
@@ -174,16 +217,9 @@ Deno.serve(async (req) => {
     }
 
     const [seat1, seat2] = [...players].sort((a, b) => a.seat - b.seat)
-    const [rosco1, rosco2] = await pickTwoDistinctRoscos(admin, match.topic, match.level)
-
-    if (!rosco1 || !rosco2 || rosco1 === rosco2) {
-      return jsonResponse({ error: 'Ez dago nahikoa erroskarik' }, 400)
-    }
-
-    const [questions1, questions2] = await Promise.all([
-      loadRoscoQuestions(admin, match.topic, match.level, rosco1),
-      loadRoscoQuestions(admin, match.topic, match.level, rosco2),
-    ])
+    const { rosco1, rosco2, questions1, questions2 } = gaiaNahasketaDa(match.topic)
+      ? await sortuNahasketakoPartida(admin, match.level)
+      : await kargatuPartidarenRoskak(admin, match.topic, match.level)
 
     validateQuestions(questions1)
     validateQuestions(questions2)
@@ -347,6 +383,174 @@ async function pickTwoDistinctRoscos(
   return [roscos[0], roscos[1]]
 }
 
+async function kargatuPartidarenRoskak(
+  supabase: ReturnType<typeof createClient>,
+  topic: string,
+  level: string
+) {
+  const [rosco1, rosco2] = await pickTwoDistinctRoscos(supabase, topic, level)
+
+  if (!rosco1 || !rosco2 || rosco1 === rosco2) {
+    throw new Error('Ez dago nahikoa erroskarik')
+  }
+
+  const [questions1, questions2] = await Promise.all([
+    loadRoscoQuestions(supabase, topic, level, rosco1),
+    loadRoscoQuestions(supabase, topic, level, rosco2),
+  ])
+
+  return {
+    rosco1,
+    rosco2,
+    questions1,
+    questions2,
+  }
+}
+
+async function sortuNahasketakoPartida(
+  supabase: ReturnType<typeof createClient>,
+  level: string
+) {
+  const iturriak = await kargatuNahasketarenIturriak(supabase, level)
+
+  if (iturriak.length < 2) {
+    throw new Error('Ez dago nahikoa erroskarik')
+  }
+
+  const nahasketa1 = sortuNahasketaGalderak(iturriak, level)
+  const nahasketa2 = sortuNahasketaGalderak(iturriak, level)
+
+  return {
+    rosco1: nahasketa1.rosco,
+    rosco2: nahasketa2.rosco,
+    questions1: nahasketa1.questions,
+    questions2: nahasketa2.questions,
+  }
+}
+
+async function kargatuNahasketarenIturriak(
+  supabase: ReturnType<typeof createClient>,
+  level: string
+) {
+  const { data, error } = await supabase
+    .from('hitzapasa')
+    .select('topic, level, rosco, slot_order, letter, clue, answer, accepted_answers')
+    .eq('level', level)
+    .eq('active', true)
+    .order('topic', { ascending: true })
+    .order('rosco', { ascending: true })
+    .order('slot_order', { ascending: true })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  const grouped = new Map<
+    string,
+    {
+      key: string
+      topic: string
+      rosco: string
+      questions: QuestionRow[]
+    }
+  >()
+
+  for (const row of data ?? []) {
+    const question = normalizatuGaldera({
+      ...row,
+      topic: String(row.topic ?? '').trim(),
+      level: String(row.level ?? '').trim(),
+      rosco: String(row.rosco ?? '').trim(),
+    })
+    const topic = String(question.topic ?? '').trim()
+    const rosco = String(question.rosco ?? '').trim()
+
+    if (!topic || !rosco || question.level !== level || gaiaNahasketaDa(topic)) {
+      continue
+    }
+
+    const key = `${topic}::${rosco}`
+    const bucket =
+      grouped.get(key) ??
+      {
+        key,
+        topic,
+        rosco,
+        questions: [],
+      }
+    bucket.questions.push(question)
+    grouped.set(key, bucket)
+  }
+
+  return [...grouped.values()]
+    .map((group) => ({
+      ...group,
+      questions: [...group.questions].sort((a, b) => a.slot_order - b.slot_order),
+    }))
+    .filter((group) => isValidQuestionSet(group.questions))
+}
+
+function sortuNahasketaGalderak(
+  iturriak: Array<{
+    key: string
+    topic: string
+    rosco: string
+    questions: QuestionRow[]
+  }>,
+  level: string
+) {
+  if (!Array.isArray(iturriak) || iturriak.length === 0) {
+    throw new Error('Ez dago nahikoa erroskarik')
+  }
+
+  const rosco = sortuNahasketaRoscoId()
+  const erabilerak = new Map<string, number>()
+  let aurrekoIturria = ''
+  const questions: QuestionRow[] = []
+
+  for (let slotOrder = 1; slotOrder <= 25; slotOrder += 1) {
+    const hautagaiak = iturriak
+      .map((iturria) => ({
+        key: iturria.key,
+        topic: iturria.topic,
+        rosco: iturria.rosco,
+        question:
+          iturria.questions.find((item) => Number(item.slot_order) === slotOrder) ?? null,
+      }))
+      .filter((iturria) => iturria.question)
+
+    if (hautagaiak.length === 0) {
+      throw new Error('Ez dago nahikoa erroskarik')
+    }
+
+    const nahastuta = nahastuAusaz(hautagaiak)
+    const aurrekoaSaihestuta = nahastuta.filter((iturria) => iturria.key !== aurrekoIturria)
+    const aukeragarriak = aurrekoaSaihestuta.length > 0 ? aurrekoaSaihestuta : nahastuta
+    aukeragarriak.sort(
+      (bat, bi) => (erabilerak.get(bat.key) ?? 0) - (erabilerak.get(bi.key) ?? 0)
+    )
+
+    const hautatua = aukeragarriak[0]
+    aurrekoIturria = hautatua.key
+    erabilerak.set(hautatua.key, (erabilerak.get(hautatua.key) ?? 0) + 1)
+    questions.push(
+      normalizatuGaldera({
+        ...hautatua.question,
+        topic: GAIA_NAHASKETA,
+        level,
+        rosco,
+        source_topic: hautatua.topic,
+        source_rosco: hautatua.rosco,
+      })
+    )
+  }
+
+  return {
+    rosco,
+    questions,
+  }
+}
+
 async function tryPickTwoDistinctRoscosRpc(
   supabase: ReturnType<typeof createClient>,
   topic: string,
@@ -481,13 +685,14 @@ async function loadRoscoQuestions(
     throw new Error(error.message)
   }
 
-  return (data ?? []).map((row) => ({
-    slot_order: Number(row.slot_order ?? 0),
-    letter: String(row.letter ?? '').trim(),
-    clue: String(row.clue ?? '').trim(),
-    answer: String(row.answer ?? '').trim(),
-    accepted_answers: normalizatuAcceptedAnswers(row.accepted_answers),
-  }))
+  return (data ?? []).map((row) =>
+    normalizatuGaldera({
+      ...row,
+      topic,
+      level,
+      rosco,
+    })
+  )
 }
 
 function validateQuestions(rows: QuestionRow[]) {
@@ -531,6 +736,7 @@ function buildPlayerState(
     errors: 0,
     unanswered: 25,
     timeRemainingMs: 300000,
+    questions: questions.map((question) => ({ ...question })),
     letters: questions.map((question) => ({
       slotOrder: Number(question.slot_order),
       letter: question.letter.trim().toUpperCase(),

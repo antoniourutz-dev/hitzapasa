@@ -146,8 +146,13 @@ select {
 }
 
 .hero-panela {
-  margin-top: clamp(1rem, 5vw, 4rem);
-  padding: clamp(1.6rem, 4vw, 3rem);
+  margin-top: clamp(0.6rem, 3vw, 2rem);
+  padding: clamp(1rem, 3vw, 1.6rem);
+}
+
+.hero-panela h1 {
+  margin: 0;
+  font-size: clamp(2rem, 7vw, 3rem);
 }
 
 .hasiera-panela {
@@ -162,12 +167,6 @@ select {
   border: 0;
   display: grid;
   gap: 0.55rem;
-}
-
-.modu-hautagailua legend {
-  padding: 0;
-  font-weight: 700;
-  color: var(--testu-biguna);
 }
 
 .modu-hautagailu-aukera-zerrenda {
@@ -355,6 +354,67 @@ select {
 .eremu-taldea {
   display: grid;
   gap: 0.45rem;
+}
+
+.gaia-txipen-zerrenda {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  align-items: stretch;
+}
+
+.gaia-txipa {
+  width: 100%;
+  min-height: 3.15rem;
+  padding: 0.72rem 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  background: rgba(8, 17, 34, 0.56);
+  color: var(--testu-biguna);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+  transition:
+    border-color var(--trantsizioa),
+    background-color var(--trantsizioa),
+    color var(--trantsizioa),
+    box-shadow var(--trantsizioa),
+    transform var(--trantsizioa);
+  cursor: pointer;
+}
+
+.gaia-txipa:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+  color: var(--testu-nagusia);
+  transform: translateY(-1px);
+}
+
+.gaia-txipa:focus-visible {
+  outline: none;
+  border-color: var(--urdin-distira);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.14);
+}
+
+.gaia-txipa--aktiboa {
+  color: var(--testu-nagusia);
+  border-color: rgba(56, 189, 248, 0.42);
+  background: rgba(56, 189, 248, 0.16);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
+}
+
+.gaia-txipa--pasiboa {
+  grid-column: 1 / -1;
+  cursor: default;
+  color: rgba(183, 196, 216, 0.84);
+}
+
+.gaia-txipa--pasiboa:hover {
+  transform: none;
 }
 
 .eremu-taldea label {
@@ -1000,6 +1060,7 @@ select {
 
   .hero-panela {
     margin-top: 0.4rem;
+    padding: 0.9rem 1rem;
   }
 
   #jokoPantaila {
