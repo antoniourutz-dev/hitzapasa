@@ -563,6 +563,10 @@ select {
   background: rgba(127, 29, 29, 0.36);
 }
 
+.denbora-erakusgailua--goiburua {
+  display: none;
+}
+
 .joko-edukia {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(320px, 430px);
@@ -714,6 +718,13 @@ select {
 .galdera-panela {
   display: grid;
   align-content: start;
+  gap: 1rem;
+}
+
+.galdera-goiburua-lerroa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 1rem;
 }
 
@@ -999,7 +1010,7 @@ select {
   #jokoPantaila .goiko-barra {
     order: 1;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
     gap: 0.55rem;
   }
