@@ -625,14 +625,30 @@ function sortuNahastutakoGalderak(galderaGuztiak, level, rosco = sortuNahasketaR
     throw new Error("rosko-gutxiegi");
   }
 
-  // Taldekatu letra bakoitzeko galdera guztiak
+  // Bilatu 25 letretako erreferentzia-multzoa lehen rosco osoaren bidez
+  const roskoakLetraka = new Map();
+  galderaGuztiak.forEach((galdera) => {
+    if (!galdera.letter) return;
+    const rosko = `${galdera.topic}::${galdera.rosco}`;
+    const zerrenda = roskoakLetraka.get(rosko) ?? [];
+    zerrenda.push(galdera.letter);
+    roskoakLetraka.set(rosko, zerrenda);
+  });
+
+  const errefLetrak = [...roskoakLetraka.values()].find((letrak) => letrak.length === 25);
+
+  if (!errefLetrak) {
+    throw new Error("rosko-gutxiegi");
+  }
+
+  // Taldekatu letra bakoitzeko galdera guztiak (25 letra erreferentziazkoekin soilik)
+  const letrakMultzoa = new Set(errefLetrak);
   const galderakLetraka = new Map();
   galderaGuztiak.forEach((galdera) => {
-    const letroa = galdera.letter;
-    if (!letroa) return;
-    const zerrenda = galderakLetraka.get(letroa) ?? [];
+    if (!galdera.letter || !letrakMultzoa.has(galdera.letter)) return;
+    const zerrenda = galderakLetraka.get(galdera.letter) ?? [];
     zerrenda.push(galdera);
-    galderakLetraka.set(letroa, zerrenda);
+    galderakLetraka.set(galdera.letter, zerrenda);
   });
 
   if (galderakLetraka.size < 25) {
@@ -640,8 +656,7 @@ function sortuNahastutakoGalderak(galderaGuztiak, level, rosco = sortuNahasketaR
   }
 
   // Letra bakoitzeko ausazko galdera bat hautatu
-  const letrak = [...galderakLetraka.keys()].sort();
-  const galderak = letrak.map((letter) => {
+  const galderak = errefLetrak.map((letter) => {
     const aukeragarriak = galderakLetraka.get(letter);
     const hautatua = nahastuAusaz(aukeragarriak)[0];
     return normalizatuNahasketaGaldera(hautatua, level, rosco);
