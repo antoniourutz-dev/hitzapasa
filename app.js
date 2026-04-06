@@ -12,6 +12,14 @@ const SUPABASE_HEADERS = lortuSupabaseHeaders();
 const JOKO_MODUA_GABE = "";
 const JOKO_MODUA_BAKARKA = "bakarka";
 const JOKO_MODUA_BINAKA = "binaka";
+const GAIA_NAHASKETA = "nahasketa";
+const NAHASKETA_ROSKO_AURREZKIA = "nahasketa::";
+const GAIEN_TXIP_ETIKETAK = {
+  nahasketa: "Nahasketa",
+  eskola_eta_kultura: "Eskola + kultura",
+  gorputza_eta_osasuna: "Gorputza + osasuna",
+  herria_gizartea_teknologia: "Herria + tekno",
+};
 
 const dom = {
   aplikazioa: document.querySelector(".aplikazioa"),
@@ -28,6 +36,7 @@ const dom = {
   onlineTolesBotoia: document.getElementById("onlineTolesBotoia"),
   onlineJoinEdukia: document.getElementById("onlineJoinEdukia"),
   onlineTolesAzalpena: document.getElementById("onlineTolesAzalpena"),
+  gaiaTxipak: document.getElementById("gaiaTxipak"),
   gaiaSelect: document.getElementById("gaiaSelect"),
   mailaEremua: document.getElementById("mailaEremua"),
   mailaSelect: document.getElementById("mailaSelect"),
@@ -481,7 +490,9 @@ function normalizatuGalderaLerroa(lerroa) {
   const letter = balioaGalderaLerrorako(lerroa, ["letter"]).toUpperCase();
   const clue = balioaGalderaLerrorako(lerroa, ["clue"]);
   const answer = balioaGalderaLerrorako(lerroa, ["answer"]);
-  const acceptedAnswers = normalizatuAcceptedAnswers(lerroa.accepted_answers);
+  const acceptedAnswers = normalizatuAcceptedAnswers(
+    lerroa.accepted_answers ?? lerroa.acceptedAnswers,
+  );
   const modeBalioa = balioaGalderaLerrorako(lerroa, ["mode", "rule"]);
   const letraArrunta = letter.toLowerCase();
   const erantzunArrunta = answer.toLowerCase();
@@ -498,6 +509,8 @@ function normalizatuGalderaLerroa(lerroa) {
     answer,
     acceptedAnswers,
     mode,
+    sourceTopic: balioaGalderaLerrorako(lerroa, ["sourceTopic", "source_topic"]),
+    sourceRosco: balioaGalderaLerrorako(lerroa, ["sourceRosco", "source_rosco"]),
   };
 }
 
@@ -563,6 +576,133 @@ function egiaztatuJokalarienRoskak(jokalariak, konfigurazioa) {
 
 function garbituKatea(balioa) {
   return `${balioa ?? ""}`.trim();
+}
+
+function gaiaNahasketaDa(gaia = egoera.konfigurazioa.topic) {
+  return garbituKatea(gaia).toLowerCase() === GAIA_NAHASKETA;
+}
+
+function nahastuAusaz(zerrenda) {
+  const kopia = [...zerrenda];
+
+  for (let indizea = kopia.length - 1; indizea > 0; indizea -= 1) {
+    const ausazkoa = Math.floor(Math.random() * (indizea + 1));
+    [kopia[indizea], kopia[ausazkoa]] = [kopia[ausazkoa], kopia[indizea]];
+  }
+
+  return kopia;
+}
+
+function sortuNahasketaRoskoId() {
+  const ausazkoZatia = Math.random().toString(36).slice(2, 8);
+  return `${NAHASKETA_ROSKO_AURREZKIA}${Date.now().toString(36)}-${ausazkoZatia}`;
+}
+
+function itzuliNahasketaIturriGakoa(topic, rosco) {
+  return `${garbituKatea(topic)}::${garbituKatea(rosco)}`;
+}
+
+function normalizatuNahasketaGaldera(galdera, level, rosco) {
+  return {
+    ...galdera,
+    topic: GAIA_NAHASKETA,
+    level,
+    rosco,
+    acceptedAnswers: normalizatuAcceptedAnswers(
+      galdera.acceptedAnswers ?? galdera.accepted_answers,
+    ),
+    sourceTopic: galdera.sourceTopic || galdera.topic,
+    sourceRosco: galdera.sourceRosco || galdera.rosco,
+  };
+}
+
+function taldekatuNahasketaIturriak(lerroak, level) {
+  const taldeak = new Map();
+
+  lerroak.forEach((lerroa) => {
+    const galdera = normalizatuGalderaLerroa(lerroa);
+
+    if (
+      !galdera.topic ||
+      !galdera.rosco ||
+      !galdera.level ||
+      galdera.level !== level ||
+      gaiaNahasketaDa(galdera.topic)
+    ) {
+      return;
+    }
+
+    const gakoa = itzuliNahasketaIturriGakoa(galdera.topic, galdera.rosco);
+    const taldea = taldeak.get(gakoa) ?? {
+      key: gakoa,
+      topic: galdera.topic,
+      rosco: galdera.rosco,
+      galderak: [],
+    };
+    taldea.galderak.push(galdera);
+    taldeak.set(gakoa, taldea);
+  });
+
+  return [...taldeak.values()]
+    .map((taldea) => ({
+      ...taldea,
+      galderak: [...taldea.galderak].sort((bat, bi) => bat.slotOrder - bi.slotOrder),
+    }))
+    .filter((taldea) => {
+      try {
+        egiaztatuGalderak(taldea.galderak);
+        return true;
+      } catch (_errorea) {
+        return false;
+      }
+    });
+}
+
+async function kargatuNahasketaIturriak(level) {
+  const datuak = await eginSupabaseEskaera("*", { active: true, level }, "topic");
+  return taldekatuNahasketaIturriak(datuak, level);
+}
+
+function sortuNahastutakoGalderak(iturriak, level, rosco = sortuNahasketaRoskoId()) {
+  if (!Array.isArray(iturriak) || iturriak.length === 0) {
+    throw new Error("rosko-gutxiegi");
+  }
+
+  const letrak = iturriak[0].galderak.map((g) => g.letter);
+  const erabilerak = new Map();
+  let aurrekoIturria = "";
+  const galderak = [];
+
+  for (const letter of letrak) {
+    const hautagaiak = iturriak
+      .map((iturria) => ({
+        key: iturria.key,
+        galdera: iturria.galderak.find((item) => item.letter === letter) ?? null,
+      }))
+      .filter((iturria) => iturria.galdera);
+
+    if (hautagaiak.length === 0) {
+      throw new Error("rosko-gutxiegi");
+    }
+
+    const nahastuta = nahastuAusaz(hautagaiak);
+    const aurrekoaSaihestuta = nahastuta.filter((iturria) => iturria.key !== aurrekoIturria);
+    const aukeragarriak = aurrekoaSaihestuta.length > 0 ? aurrekoaSaihestuta : nahastuta;
+    aukeragarriak.sort(
+      (bat, bi) => (erabilerak.get(bat.key) ?? 0) - (erabilerak.get(bi.key) ?? 0),
+    );
+
+    const hautatua = aukeragarriak[0];
+    aurrekoIturria = hautatua.key;
+    erabilerak.set(hautatua.key, (erabilerak.get(hautatua.key) ?? 0) + 1);
+    galderak.push(normalizatuNahasketaGaldera(hautatua.galdera, level, rosco));
+  }
+
+  egiaztatuGalderak(galderak);
+  return {
+    rosco,
+    galderak,
+  };
 }
 
 function lortuOnlineAzkenGertaerarenPayloada(gertaera) {
@@ -644,6 +784,9 @@ function normalizatuOnlineGameStateJokalaria(jokalaria, seat, lobbyJokalaria = n
         : [];
   const letters = normalizatuOnlineLetraEgoera(lettersIturria);
   const stats = kalkulatuOnlineJokalariEstatistikak(letters);
+  const questions = Array.isArray(jokalaria?.questions)
+    ? jokalaria.questions.map(normalizatuGalderaLerroa)
+    : [];
   const rawCurrentSlotOrder = Number(
     jokalaria?.currentSlotOrder ??
       jokalaria?.current_slot_order ??
@@ -665,6 +808,7 @@ function normalizatuOnlineGameStateJokalaria(jokalaria, seat, lobbyJokalaria = n
         HASIERAKO_DENBORA * 1000,
     ),
     letters,
+    questions,
   };
 }
 
@@ -1689,6 +1833,11 @@ function lortuOnlineEsleitutakoRoskoa() {
   );
 }
 
+function lortuOnlineEsleitutakoGalderak() {
+  const galderak = lortuOnlineGameStateJokalaria()?.questions ?? [];
+  return Array.isArray(galderak) ? galderak.map(normalizatuGalderaLerroa) : [];
+}
+
 function lortuOnlineTxandakoSeat() {
   return Number(lortuOnlineGameState()?.turnPlayerSeat ?? 0) || null;
 }
@@ -2195,7 +2344,47 @@ function ezarriFeedback(mezua, mota = "oharra") {
   dom.feedbackMezua.className = `feedbacka feedbacka--${mota}`;
 }
 
-function ezarriSelectAukerak(selecta, aukerak, placeholder) {
+function hasieratuHitza(testua) {
+  return testua ? testua.charAt(0).toUpperCase() + testua.slice(1) : "";
+}
+
+function itzuliGaiarenIzenOsoa(gaia) {
+  const balioa = `${gaia ?? ""}`.trim();
+
+  if (!balioa) {
+    return "";
+  }
+
+  return balioa
+    .replaceAll("_eta_", " eta ")
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((hitza) => (hitza === "eta" ? hitza : hasieratuHitza(hitza)))
+    .join(" ");
+}
+
+function itzuliGaiarenTxipEtiketa(gaia) {
+  return GAIEN_TXIP_ETIKETAK[gaia] ?? itzuliGaiarenIzenOsoa(gaia);
+}
+
+function sortuGaiaTxipaEtiketa(gaia) {
+  return {
+    txipa: itzuliGaiarenTxipEtiketa(gaia),
+    osoa: itzuliGaiarenIzenOsoa(gaia),
+  };
+}
+
+function ordenatuGaiak(gaiak) {
+  return [...new Set(gaiak.filter(Boolean))].sort((bat, bi) =>
+    itzuliGaiarenTxipEtiketa(bat).localeCompare(itzuliGaiarenTxipEtiketa(bi), "eu", {
+      sensitivity: "base",
+    }),
+  );
+}
+
+function ezarriSelectAukerak(selecta, aukerak, placeholder, formatua = (aukera) => aukera) {
   selecta.innerHTML = "";
 
   const lehenAukera = document.createElement("option");
@@ -2206,9 +2395,70 @@ function ezarriSelectAukerak(selecta, aukerak, placeholder) {
   aukerak.forEach((aukera) => {
     const aukeraElementua = document.createElement("option");
     aukeraElementua.value = aukera;
-    aukeraElementua.textContent = aukera;
+    aukeraElementua.textContent = formatua(aukera);
     selecta.appendChild(aukeraElementua);
   });
+}
+
+function renderGaiaTxipak() {
+  if (!dom.gaiaTxipak) {
+    return;
+  }
+
+  dom.gaiaTxipak.innerHTML = "";
+  dom.gaiaTxipak.setAttribute("aria-busy", `${egoera.kargatzen.topics}`);
+
+  if (egoera.kargatzen.topics) {
+    const kargatzen = document.createElement("span");
+    kargatzen.className = "gaia-txipa gaia-txipa--pasiboa";
+    kargatzen.textContent = "Gaiak kargatzen...";
+    dom.gaiaTxipak.appendChild(kargatzen);
+    return;
+  }
+
+  if (egoera.aukerak.topics.length === 0) {
+    const hutsik = document.createElement("span");
+    hutsik.className = "gaia-txipa gaia-txipa--pasiboa";
+    hutsik.textContent = "Ez dago gairik";
+    dom.gaiaTxipak.appendChild(hutsik);
+    return;
+  }
+
+  egoera.aukerak.topics.forEach((gaia) => {
+    const { txipa, osoa } = sortuGaiaTxipaEtiketa(gaia);
+    const botoia = document.createElement("button");
+    const aktibo = egoera.konfigurazioa.topic === gaia;
+    botoia.type = "button";
+    botoia.className = aktibo ? "gaia-txipa gaia-txipa--aktiboa" : "gaia-txipa";
+    botoia.dataset.topic = gaia;
+    botoia.textContent = txipa;
+    botoia.title = osoa || txipa;
+    botoia.setAttribute("aria-pressed", `${aktibo}`);
+    dom.gaiaTxipak.appendChild(botoia);
+  });
+}
+
+function aukeratuGaia(gaia) {
+  const hurrengoGaia = `${gaia ?? ""}`;
+
+  if (hurrengoGaia === egoera.konfigurazioa.topic) {
+    renderStartScreen();
+    return;
+  }
+
+  egoera.konfigurazioa.topic = hurrengoGaia;
+  egoera.konfigurazioa.level = "";
+  egoera.aukerak.levels = [];
+  egoera.aukerak.roscos = [];
+  ezarriOnlineErrorea("create", "");
+  ezarriHasieraMezua("", "oharra");
+
+  if (!egoera.konfigurazioa.topic) {
+    renderStartScreen();
+    return;
+  }
+
+  void kargatuMailak(egoera.konfigurazioa.topic);
 }
 
 function renderStartScreen() {
@@ -2222,9 +2472,11 @@ function renderStartScreen() {
     dom.gaiaSelect,
     egoera.aukerak.topics,
     egoera.kargatzen.topics ? "Kargatzen..." : "Aukeratu gaia",
+    itzuliGaiarenIzenOsoa,
   );
   dom.gaiaSelect.value = egoera.konfigurazioa.topic;
   dom.gaiaSelect.disabled = egoera.kargatzen.topics || egoera.aukerak.topics.length === 0;
+  renderGaiaTxipak();
 
   ezarriSelectAukerak(
     dom.mailaSelect,
@@ -2337,7 +2589,9 @@ async function kargatuGaiak() {
 
   try {
     const datuak = await eginSupabaseEskaera("topic", { active: true }, "topic");
-    egoera.aukerak.topics = aukerakBakarrik(datuak, "topic");
+    const gaiArruntak = aukerakBakarrik(datuak, "topic");
+    egoera.aukerak.topics =
+      gaiArruntak.length > 0 ? ordenatuGaiak([...gaiArruntak, GAIA_NAHASKETA]) : [];
 
     if (egoera.aukerak.topics.length === 0) {
       ezarriHasieraMezua("Ez dago daturik", "okerra");
@@ -2362,7 +2616,9 @@ async function kargatuMailak(topic) {
   renderStartScreen();
 
   try {
-    const datuak = await eginSupabaseEskaera("level", { active: true, topic }, "level");
+    const datuak = gaiaNahasketaDa(topic)
+      ? await eginSupabaseEskaera("level", { active: true }, "level")
+      : await eginSupabaseEskaera("level", { active: true, topic }, "level");
 
     if (egoera.konfigurazioa.topic !== topic) {
       return;
@@ -2394,17 +2650,27 @@ async function kargatuRoskak(topic, level) {
   renderStartScreen();
 
   try {
-    const datuak = await eginSupabaseEskaera(
-      "rosco",
-      { active: true, topic, level },
-      "rosco",
-    );
+    if (gaiaNahasketaDa(topic)) {
+      const iturriak = await kargatuNahasketaIturriak(level);
 
-    if (egoera.konfigurazioa.topic !== topic || egoera.konfigurazioa.level !== level) {
-      return;
+      if (egoera.konfigurazioa.topic !== topic || egoera.konfigurazioa.level !== level) {
+        return;
+      }
+
+      egoera.aukerak.roscos = iturriak.map((iturria) => iturria.key);
+    } else {
+      const datuak = await eginSupabaseEskaera(
+        "rosco",
+        { active: true, topic, level },
+        "rosco",
+      );
+
+      if (egoera.konfigurazioa.topic !== topic || egoera.konfigurazioa.level !== level) {
+        return;
+      }
+
+      egoera.aukerak.roscos = aukerakBakarrik(datuak, "rosco");
     }
-
-    egoera.aukerak.roscos = aukerakBakarrik(datuak, "rosco");
 
     if (!jokoModuaAukeratutaDago()) {
       ezarriHasieraMezua(
@@ -2476,6 +2742,25 @@ async function kargatuRoskoarenGalderak(topic, level, rosco) {
 
 async function kargatuBiJokalarienGalderak() {
   const { topic, level } = egoera.konfigurazioa;
+
+  if (gaiaNahasketaDa(topic)) {
+    const iturriak = await kargatuNahasketaIturriak(level);
+
+    if (iturriak.length < 2) {
+      throw new Error("rosko-gutxiegi");
+    }
+
+    const nahasketa1 = sortuNahastutakoGalderak(iturriak, level);
+    const nahasketa2 = sortuNahastutakoGalderak(iturriak, level);
+
+    return {
+      rosco1: nahasketa1.rosco,
+      rosco2: nahasketa2.rosco,
+      galderak1: nahasketa1.galderak,
+      galderak2: nahasketa2.galderak,
+    };
+  }
+
   const [rosco1, rosco2] = esleituJokalarienRoskak(egoera.aukerak.roscos);
 
   if (rosco1 === rosco2) {
@@ -2497,6 +2782,17 @@ async function kargatuBiJokalarienGalderak() {
 
 async function kargatuBakarkakoGalderak() {
   const { topic, level } = egoera.konfigurazioa;
+
+  if (gaiaNahasketaDa(topic)) {
+    const iturriak = await kargatuNahasketaIturriak(level);
+
+    if (iturriak.length < 1) {
+      throw new Error("rosko-gutxiegi");
+    }
+
+    return sortuNahastutakoGalderak(iturriak, level);
+  }
+
   const rosco = esleituBakarkakoRoskoa(egoera.aukerak.roscos);
   const galderak = await kargatuRoskoarenGalderak(topic, level, rosco);
 
@@ -2898,7 +3194,7 @@ function renderOnlineLobby() {
   dom.onlineLobbyIzenburua.textContent = izenburua;
   dom.onlineLobbyAzalpena.textContent = azalpena;
   dom.onlineRoomCode.textContent = partida.room_code || "-";
-  dom.onlineTopic.textContent = partida.topic || "-";
+  dom.onlineTopic.textContent = partida.topic ? itzuliGaiarenIzenOsoa(partida.topic) : "-";
   dom.onlineLevel.textContent = partida.level || "-";
   dom.onlineStatus.textContent = biakPrest
     ? "Partida hasteko prest"
@@ -2994,7 +3290,9 @@ function renderOnlinePrestScreen() {
   dom.onlinePrestAzalpena.textContent =
     "Bi jokalariak prest daude. Hurrengo online fasea prestatzen ari da.";
   dom.onlinePrestRoomCode.textContent = partida.room_code || "-";
-  dom.onlinePrestTopic.textContent = partida.topic || "-";
+  dom.onlinePrestTopic.textContent = partida.topic
+    ? itzuliGaiarenIzenOsoa(partida.topic)
+    : "-";
   dom.onlinePrestLevel.textContent = partida.level || "-";
   dom.onlinePrestStatus.textContent = "Partida hasteko prest";
   dom.onlinePrestJokalari1.textContent = itzuliLobbyJokalariEgoera(jokalaria1);
@@ -3222,7 +3520,11 @@ async function kargatuOnlineJokoDatuak() {
   renderOnlineGameScreen();
 
   try {
-    const galderak = await kargatuRoskoarenGalderak(topic, level, rosco);
+    const gameStateGalderak = lortuOnlineEsleitutakoGalderak();
+    const galderak =
+      gameStateGalderak.length === 25
+        ? gameStateGalderak
+        : await kargatuRoskoarenGalderak(topic, level, rosco);
     egoera.online.onlineGameQuestions = galderak;
     egoera.online.onlineGameRosco = rosco;
     egoera.online.onlineGameState = lortuOnlineGameState();
@@ -3450,7 +3752,9 @@ function renderOnlineAmaieraScreen() {
     dom.onlineAmaieraIzenburua.textContent = "Amaierako emaitza";
     dom.onlineAmaieraAzalpena.textContent = "Ezin izan da partida amaiera eguneratu.";
     dom.onlineAmaieraRoomCode.textContent = `${egoera.online.onlineMatch?.room_code ?? "-"}`;
-    dom.onlineAmaieraTopic.textContent = `${egoera.online.onlineMatch?.topic ?? "-"}`;
+    dom.onlineAmaieraTopic.textContent = egoera.online.onlineMatch?.topic
+      ? itzuliGaiarenIzenOsoa(egoera.online.onlineMatch.topic)
+      : "-";
     dom.onlineAmaieraLevel.textContent = `${egoera.online.onlineMatch?.level ?? "-"}`;
     dom.onlineAmaieraIrabazlea.textContent = "-";
     dom.onlineAmaieraArrazoia.textContent = "-";
@@ -3470,7 +3774,9 @@ function renderOnlineAmaieraScreen() {
       ? "Bi jokalariek emaitza bera lortu dute."
       : `${itzuliEserlekuEtiketa(emaitza.winnerSeat)} nagusitu da online partidan.`;
   dom.onlineAmaieraRoomCode.textContent = emaitza.roomCode;
-  dom.onlineAmaieraTopic.textContent = emaitza.topic;
+  dom.onlineAmaieraTopic.textContent = emaitza.topic
+    ? itzuliGaiarenIzenOsoa(emaitza.topic)
+    : "-";
   dom.onlineAmaieraLevel.textContent = emaitza.level;
   dom.onlineAmaieraIrabazlea.textContent = emaitza.winnerText;
   dom.onlineAmaieraArrazoia.textContent = itzuliOnlineAmaieraArrazoia(emaitza.reason);
@@ -4745,19 +5051,18 @@ function lotuGertaerak() {
   });
 
   dom.gaiaSelect.addEventListener("change", () => {
-    egoera.konfigurazioa.topic = dom.gaiaSelect.value;
-    egoera.konfigurazioa.level = "";
-    egoera.aukerak.levels = [];
-    egoera.aukerak.roscos = [];
-    ezarriOnlineErrorea("create", "");
-    ezarriHasieraMezua("", "oharra");
+    aukeratuGaia(dom.gaiaSelect.value);
+  });
 
-    if (!egoera.konfigurazioa.topic) {
-      renderStartScreen();
+  dom.gaiaTxipak?.addEventListener("click", (event) => {
+    const botoia = event.target instanceof Element ? event.target.closest("[data-topic]") : null;
+
+    if (!(botoia instanceof HTMLButtonElement)) {
       return;
     }
 
-    void kargatuMailak(egoera.konfigurazioa.topic);
+    dom.gaiaSelect.value = botoia.dataset.topic ?? "";
+    aukeratuGaia(botoia.dataset.topic ?? "");
   });
 
   dom.mailaSelect.addEventListener("change", () => {
