@@ -660,7 +660,10 @@ function taldekatuNahasketaIturriak(lerroak, level) {
 
 async function kargatuNahasketaIturriak(level) {
   const datuak = await eginSupabaseEskaera("*", { active: true, level }, "topic");
-  return taldekatuNahasketaIturriak(datuak, level);
+  console.log("[nahasketa] galdera guztiak:", datuak.length, "level:", level);
+  const iturriak = taldekatuNahasketaIturriak(datuak, level);
+  console.log("[nahasketa] iturriak (rosco taldeak):", iturriak.map((i) => `${i.key}(${i.galderak.length})`));
+  return iturriak;
 }
 
 function sortuNahastutakoGalderak(iturriak, level, rosco = sortuNahasketaRoskoId()) {
@@ -4675,6 +4678,7 @@ async function initGame() {
     }
     egiaztatuJokalarienRoskak(egoera.jokalariak, egoera.konfigurazioa);
   } catch (errorea) {
+    console.error("[initGame] errorea:", errorea);
     egoera.jokalariak = [];
     ezarriHasieraMezua(
       errorea instanceof Error && errorea.message === "rosko-gutxiegi"
