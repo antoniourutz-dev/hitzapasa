@@ -6,6 +6,7 @@ import {
 } from "./supabaseClient.js";
 
 const HASIERAKO_DENBORA = 300;
+const FEEDBACK_IKUSGAI_DENBORA_MS = 5000;
 const GORDE_GAKOA = "hitzapasa-egoera-v10";
 const SUPABASE_HEADERS = lortuSupabaseHeaders();
 const JOKO_MODUA_GABE = "";
@@ -260,6 +261,8 @@ let onlineGameKargatutakoMatchId = "";
 let onlineKontagailuaId = null;
 let onlineTimeoutEskatutakoGakoa = "";
 let onlineAuthHarpidetza = null;
+let feedbackGarbitzeTimeoutId = null;
+let onlineMugimenduMezuGarbitzeTimeoutId = null;
 
 function lortuEgoerarenBiltegia() {
   try {
@@ -360,6 +363,50 @@ function irakurriBiltegitik(gakoa) {
 
 function ezabatuBiltegitik(gakoa) {
   lortuEgoerarenBiltegia().removeItem(gakoa);
+}
+
+function garbituFeedbackProgramazioa() {
+  if (feedbackGarbitzeTimeoutId) {
+    window.clearTimeout(feedbackGarbitzeTimeoutId);
+    feedbackGarbitzeTimeoutId = null;
+  }
+}
+
+function programatuFeedbackGarbitzea() {
+  garbituFeedbackProgramazioa();
+  feedbackGarbitzeTimeoutId = window.setTimeout(() => {
+    feedbackGarbitzeTimeoutId = null;
+    egoera.feedback = "";
+    egoera.feedbackMota = "oharra";
+    egoera.aldaketaArrazoia = "";
+
+    if (egoera.pantaila === "jokoa") {
+      renderGameScreen();
+    }
+
+    gordeEgoera();
+  }, FEEDBACK_IKUSGAI_DENBORA_MS);
+}
+
+function garbituOnlineMugimenduMezuProgramazioa() {
+  if (onlineMugimenduMezuGarbitzeTimeoutId) {
+    window.clearTimeout(onlineMugimenduMezuGarbitzeTimeoutId);
+    onlineMugimenduMezuGarbitzeTimeoutId = null;
+  }
+}
+
+function programatuOnlineMugimenduMezuaGarbitzea() {
+  garbituOnlineMugimenduMezuProgramazioa();
+  onlineMugimenduMezuGarbitzeTimeoutId = window.setTimeout(() => {
+    onlineMugimenduMezuGarbitzeTimeoutId = null;
+    egoera.online.onlineMoveMessage = "";
+
+    if (egoera.pantaila === "online-jokoa") {
+      renderOnlineGameScreen();
+    }
+
+    gordeEgoera();
+  }, FEEDBACK_IKUSGAI_DENBORA_MS);
 }
 
 function onlineSaioaEtaEserlekuaBatDatoz() {
@@ -1396,13 +1443,22 @@ function gordeOnlineErantzuna(data, flow = egoera.online.flow) {
     if (data.result === "correct") {
       egoera.online.onlineMoveMessage = "Erantzun zuzena!";
     } else if (data.result === "wrong") {
-      egoera.online.onlineMoveMessage = "Erantzun okerra!";
+      const erantzunZuzena = `${data.correctAnswer ?? ""}`.trim();
+      egoera.online.onlineMoveMessage = erantzunZuzena
+        ? `Erantzun okerra! Erantzun zuzena: ${erantzunZuzena}`
+        : "Erantzun okerra!";
     } else if (data.result === "passed") {
       egoera.online.onlineMoveMessage = "Hitzapasa egin duzu";
     } else if (data.result === "timeout") {
       egoera.online.onlineMoveMessage = "Denbora agortuta";
     } else if (data.result === "synced") {
       egoera.online.onlineMoveMessage = "Denbora eguneratzen...";
+    }
+
+    if (egoera.online.onlineMoveMessage) {
+      programatuOnlineMugimenduMezuaGarbitzea();
+    } else {
+      garbituOnlineMugimenduMezuProgramazioa();
     }
   }
 
@@ -4495,11 +4551,13 @@ function submitAnswer(eventua) {
     jokalaria.asmatuak += 1;
     egoera.feedback = "Erantzun zuzena!";
     egoera.feedbackMota = "zuzena";
+    programatuFeedbackGarbitzea();
   } else {
     jokalaria.egoerak[jokalaria.unekoIndizea] = "wrong";
     jokalaria.hutsak += 1;
-    egoera.feedback = "Erantzun okerra!";
+    egoera.feedback = `Erantzun okerra! Erantzun zuzena: ${galdera.answer}`;
     egoera.feedbackMota = "okerra";
+    programatuFeedbackGarbitzea();
   }
 
   dom.erantzunaInput.value = "";
@@ -4564,7 +4622,9 @@ function handlePasapalabra() {
 
 function restartGame() {
   garbituErlojua();
+  garbituFeedbackProgramazioa();
   garbituOnlineKontagailua();
+  garbituOnlineMugimenduMezuProgramazioa();
   garbituOnlineEguneratzeProgramazioa();
   garbituOnlineHasieraProgramazioa();
   void garbituOnlineRealtimeHarpidetza();

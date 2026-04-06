@@ -191,6 +191,7 @@ Deno.serve(async (req) => {
     return jsonResponse({
       success: true,
       result: emaitza,
+      correctAnswer: !zuzena ? galdera.answer : null,
       matchStatus: amaiera.status,
       turnPlayerSeat: amaiera.gameState.turnPlayerSeat,
       gameState: amaiera.gameState,
